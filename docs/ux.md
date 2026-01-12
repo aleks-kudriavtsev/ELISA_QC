@@ -1,51 +1,51 @@
-# UX requirements
+# Требования к UX
 
-## Screens
+## Экраны
 
-### Protocol selection
-- Provide a list of available protocols with version labels and brief descriptions.
-- Allow searching and filtering by assay type and last updated date.
-- Show a quick preview of required inputs and estimated run time.
+### Выбор протокола
+- Показывать список доступных протоколов с версиями и краткими описаниями.
+- Разрешать поиск и фильтрацию по типу анализа и дате последнего обновления.
+- Показывать быстрый обзор требуемых вводных данных и оценки времени выполнения.
 
-### Plan builder
-- Build a step-by-step plan with editable stages (sample prep, incubation, wash, readout).
-- Allow reordering and duplication of steps for repeated cycles.
-- Display required consumables and volumes per step.
+### Конструктор плана
+- Формировать пошаговый план с редактируемыми этапами (подготовка образцов, инкубация, промывка, считывание).
+- Разрешать перестановку и дублирование шагов для повторяющихся циклов.
+- Отображать необходимые расходные материалы и объёмы на каждом шаге.
 
-### Checklist
-- Present a run-ready checklist grouped by step with per-item completion toggles.
-- Highlight blockers and missing inputs before run start.
-- Persist progress locally for resume.
+### Чек‑лист
+- Показывать готовый к запуску чек‑лист, сгруппированный по шагам, с отметками выполнения для каждого пункта.
+- Подсвечивать блокирующие пункты и недостающие вводные данные перед стартом.
+- Сохранять прогресс локально для продолжения.
 
-### Uploads
-- Support photo uploads for plates and instrument screens.
-- Support CSV uploads for plate maps and measurement data.
-- Show upload status, validation results, and retry actions.
+### Загрузки
+- Поддерживать загрузку фотографий планшетов и экранов приборов.
+- Поддерживать загрузку CSV для карт планшетов и данных измерений.
+- Показывать статус загрузки, результаты валидации и действия для повтора.
 
-### Summary
-- Summarize protocol, run parameters, and outcomes.
-- Display key metrics and links to uploaded artifacts.
-- Provide export options for report and raw data.
+### Сводка
+- Суммировать протокол, параметры запуска и результаты.
+- Отображать ключевые метрики и ссылки на загруженные артефакты.
+- Предоставлять экспорт отчёта и сырых данных.
 
-## Incubation timers and reminders
-- Timers are created per incubation step with clear start/end times.
-- Provide reminders 5 minutes before completion and on completion.
-- Support pause/resume with automatic adjustment of remaining time.
-- Show active timers on all screens and allow quick navigation to the current step.
+## Таймеры инкубации и напоминания
+- Таймеры создаются для каждого шага инкубации с чёткими временем начала и окончания.
+- Напоминать за 5 минут до завершения и в момент завершения.
+- Поддерживать паузу/возобновление с автоматическим пересчётом оставшегося времени.
+- Показывать активные таймеры на всех экранах и обеспечивать быстрый переход к текущему шагу.
 
-## Parameter validation
-- Validate required fields before run start and before each step.
-- Enforce numeric ranges for temperature, time, and volume.
-- Validate CSV structure (headers, required columns, and row count).
-- Show inline validation messages and a summary of errors.
+## Валидация параметров
+- Проверять обязательные поля перед запуском и перед каждым шагом.
+- Контролировать числовые диапазоны для температуры, времени и объёма.
+- Валидировать структуру CSV (заголовки, обязательные столбцы и число строк).
+- Показывать встроенные сообщения валидации и сводку ошибок.
 
-## Quick start (templates)
-- Provide templates for common protocols (e.g., standard ELISA, sandwich ELISA).
-- Allow cloning a recent run into a new plan.
-- Offer a minimal "guided" template with defaults and tips.
+## Быстрый старт (шаблоны)
+- Предоставлять шаблоны для типовых протоколов (например, стандартный ELISA, сэндвич‑ELISA).
+- Разрешать клонирование недавнего запуска в новый план.
+- Предлагать минимальный «пошаговый» шаблон с настройками по умолчанию и подсказками.
 
-## Offline mode and draft
-- Allow drafting a plan and checklist offline with local persistence.
-- Queue uploads and sync when connection is restored.
-- Indicate offline status and last sync time.
-- Protect drafts from accidental loss with explicit discard action.
+## Офлайн‑режим и черновик
+- Разрешать создавать план и чек‑лист офлайн с локальным сохранением.
+- Ставить загрузки в очередь и синхронизировать при восстановлении соединения.
+- Показывать статус офлайн и время последней синхронизации.
+- Защищать черновики от случайной потери через явное действие удаления.
