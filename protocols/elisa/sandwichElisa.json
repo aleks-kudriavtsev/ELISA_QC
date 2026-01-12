@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "protocols/elisa/sandwichElisa.json",
+  "title": "Sandwich ELISA Protocol Template",
+  "description": "Template for sandwich ELISA workflows using capture and detection antibodies for antigen quantification.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "protocolId",
+    "name",
+    "description",
+    "applicability",
+    "reagents",
+    "buffers",
+    "steps"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the protocol template schema.",
+      "default": "1.0.0"
+    },
+    "protocolId": {
+      "type": "string",
+      "description": "Unique identifier for the protocol template.",
+      "default": "sandwich-elisa"
+    },
+    "name": {
+      "type": "string",
+      "const": "Sandwich ELISA"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable summary of the protocol."
+    },
+    "applicability": {
+      "type": "string",
+      "description": "When to use the protocol and what it detects."
+    },
+    "reagents": {
+      "type": "array",
+      "description": "Primary reagents used in the assay.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "role"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "role": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "buffers": {
+      "type": "array",
+      "description": "Buffers used across washing, blocking, and dilutions.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "purpose"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "purpose": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "prefixItems": [
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "sandwich-coating" },
+            "name": { "const": "Coating (Capture Antibody)" },
+            "stepType": { "const": "coating" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "temperatureC" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "timeMin" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "volumeUl" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "concentrationUgMl" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "sandwich-blocking" },
+            "name": { "const": "Blocking" },
+            "stepType": { "const": "blocking" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 3,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "temperatureC" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "timeMin" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "volumeUl" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "sandwich-sample-incubation" },
+            "name": { "const": "Incubation (Sample/Antigen)" },
+            "stepType": { "const": "incubation" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "temperatureC" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "timeMin" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "volumeUl" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "concentrationUgMl" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "sandwich-wash-1" },
+            "name": { "const": "Wash 1" },
+            "stepType": { "const": "wash" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "timeMin" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "volumeUl" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "sandwich-detection-incubation" },
+            "name": { "const": "Incubation (Detection Antibody)" },
+            "stepType": { "const": "incubation" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "temperatureC" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "timeMin" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "volumeUl" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "concentrationUgMl" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "sandwich-wash-2" },
+            "name": { "const": "Wash 2" },
+            "stepType": { "const": "wash" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "timeMin" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "volumeUl" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "sandwich-substrate" },
+            "name": { "const": "Substrate" },
+            "stepType": { "const": "substrate" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 3,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "temperatureC" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "timeMin" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "volumeUl" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "sandwich-stop" },
+            "name": { "const": "Stop Reaction" },
+            "stepType": { "const": "stop" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "volumeUl" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "sandwich-read" },
+            "name": { "const": "Read" },
+            "stepType": { "const": "read" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "od" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "items": false
+    }
+  },
+  "definitions": {
+    "field": {
+      "type": "object",
+      "required": ["fieldId", "label", "dataType"],
+      "properties": {
+        "fieldId": {
+          "type": "string",
+          "enum": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl",
+            "od"
+          ]
+        },
+        "label": { "type": "string" },
+        "dataType": {
+          "type": "string",
+          "enum": ["number", "string"]
+        },
+        "unit": { "type": "string" },
+        "required": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
