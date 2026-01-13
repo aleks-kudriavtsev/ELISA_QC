@@ -4,6 +4,7 @@ const { ExperimentRun } = require('./experimentRun');
 const { StepLog } = require('./stepLog');
 const { Attachment } = require('./attachment');
 const { InstrumentRecord } = require('./instrumentRecord');
+const { Upload } = require('./upload');
 
 module.exports = {
   User,
@@ -12,4 +13,5 @@ module.exports = {
   StepLog,
   Attachment,
   InstrumentRecord,
+  Upload,
 };

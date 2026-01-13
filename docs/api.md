@@ -339,24 +339,41 @@ X-Telegram-Init-Data: query_id=...&user=...&auth_date=...&hash=...
 {
   "runId": "run_1001",
   "stepId": "read_plate",
-  "fileName": "reader_02_results.csv",
-  "contentType": "text/csv",
-  "kind": "instrument",
-  "storagePath": "csv/processed/run_1001/reader_02_results.csv"
+  "files": [
+    {
+      "fileName": "reader_02_results.csv",
+      "contentType": "text/csv",
+      "kind": "csv",
+      "contentText": "Well,OD,Wavelength,SampleID\nA1,0.12,450,S01",
+      "sizeBytes": 128
+    },
+    {
+      "fileName": "plate_scan_01.png",
+      "contentType": "image/png",
+      "kind": "image",
+      "contentBase64": "<base64>",
+      "sizeBytes": 245120
+    }
+  ]
 }
 ```
 
 Ответ:
 ```json
 {
-  "id": "upload_3001",
-  "runId": "run_1001",
-  "stepId": "read_plate",
-  "fileName": "reader_02_results.csv",
-  "contentType": "text/csv",
-  "kind": "instrument",
-  "storagePath": "csv/processed/run_1001/reader_02_results.csv",
-  "createdAt": "2024-06-01T12:45:00Z"
+  "items": [
+    {
+      "id": "upload_3001",
+      "runId": "run_1001",
+      "stepId": "read_plate",
+      "fileName": "reader_02_results.csv",
+      "contentType": "text/csv",
+      "kind": "csv",
+      "storagePath": "csv/raw/run_1001/reader_02_results.csv",
+      "createdAt": "2024-06-01T12:45:00Z",
+      "sizeBytes": 128
+    }
+  ]
 }
 ```
 
@@ -373,8 +390,8 @@ X-Telegram-Init-Data: query_id=...&user=...&auth_date=...&hash=...
       "stepId": "read_plate",
       "fileName": "reader_02_results.csv",
       "contentType": "text/csv",
-      "kind": "instrument",
-      "storagePath": "csv/processed/run_1001/reader_02_results.csv"
+      "kind": "csv",
+      "storagePath": "csv/raw/run_1001/reader_02_results.csv"
     }
   ]
 }
@@ -391,7 +408,7 @@ X-Telegram-Init-Data: query_id=...&user=...&auth_date=...&hash=...
   "stepId": "read_plate",
   "fileName": "reader_02_results.csv",
   "contentType": "text/csv",
-  "kind": "instrument",
-  "storagePath": "csv/processed/run_1001/reader_02_results.csv"
+  "kind": "csv",
+  "storagePath": "csv/raw/run_1001/reader_02_results.csv"
 }
 ```
