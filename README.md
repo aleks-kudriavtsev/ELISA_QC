@@ -19,18 +19,20 @@
 
 ### Переменные окружения
 
-Для запуска backend нужны переменные окружения:
+Для запуска backend нужны переменные окружения (см. `.env.example`):
 
-- `BOT_TOKEN` — токен Telegram-бота.
 - `DATABASE_URL` — строка подключения к базе данных.
 - `STORAGE_PATH` — путь к директории хранения файлов.
+- `TELEGRAM_BOT_TOKEN` — токен Telegram-бота для доступа к API.
+- `WEBAPP_URL` — базовый URL Telegram WebApp (используется для проверки и ссылок).
 
 Пример для локальной сессии:
 
 ```bash
-export BOT_TOKEN=your-telegram-bot-token
 export DATABASE_URL=postgres://user:password@localhost:5432/elisa
 export STORAGE_PATH=./storage
+export TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+export WEBAPP_URL=http://localhost:5173
 ```
 
 ### Backend
