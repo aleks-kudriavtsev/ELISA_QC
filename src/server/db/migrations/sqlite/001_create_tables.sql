@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS experiment_runs (
   started_by_user_id TEXT NOT NULL,
   started_at TEXT NOT NULL,
   finished_at TEXT,
+  lots TEXT NOT NULL DEFAULT '[]',
   FOREIGN KEY (plan_id) REFERENCES experiment_plans(id),
   FOREIGN KEY (started_by_user_id) REFERENCES users(id)
 );
@@ -39,6 +40,7 @@ CREATE TABLE IF NOT EXISTS step_logs (
   status TEXT NOT NULL CHECK (status IN ('started', 'finished', 'failed')),
   timestamp TEXT NOT NULL,
   message TEXT NOT NULL,
+  lots TEXT NOT NULL DEFAULT '[]',
   FOREIGN KEY (run_id) REFERENCES experiment_runs(id)
 );
 
