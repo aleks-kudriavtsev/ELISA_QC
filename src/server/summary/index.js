@@ -4,6 +4,7 @@ const path = require('path');
 const { ExperimentRun, StepLog } = require('../models');
 const { logStep } = require('../logging/stepLogger');
 const { buildStandardCurveSummary } = require('../analysis/standardCurve');
+const { calculateFactorEffects } = require('../analysis/experimentDesign');
 const {
   normalizeControlLabel,
   parseControlRange,
@@ -19,6 +20,7 @@ const createSummaryStore = () => ({
   attachments: [],
   uploads: [],
   instrumentRecords: [],
+  experimentDesigns: [],
 });
 
 const findLatestTimestamp = (timestamps) =>
@@ -148,6 +150,14 @@ const createRunHandler = ({ store = createSummaryStore() } = {}) => {
 
     const run = new ExperimentRun(payload);
     const errors = validateExperimentRun(run, payload.plan || {});
+    if (run.designId) {
+      const designExists = store.experimentDesigns.some(
+        (entry) => entry.id === run.designId,
+      );
+      if (!designExists) {
+        errors.push(`ExperimentRun.designId references unknown design ${run.designId}`);
+      }
+    }
     if (errors.length > 0) {
       writeJson(response, 400, {
         error: { code: 'validation_failed', message: 'Run validation failed', details: errors },
@@ -267,6 +277,16 @@ const createSummaryHandler = ({ store = createSummaryStore() } = {}) => {
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     const controlSummary = await buildControlSummary({ store, runId });
     const standardCurveSummary = await buildStandardCurveSummary({ store, runId });
+    const experimentDesign = run.designId
+      ? store.experimentDesigns.find((entry) => entry.id === run.designId)
+      : null;
+    const factorEffects = experimentDesign
+      ? await calculateFactorEffects({
+          store,
+          design: experimentDesign,
+          runSeriesId: run.runSeriesId,
+        })
+      : null;
     const latestTimestamp = findLatestTimestamp([
       run.finishedAt,
       run.startedAt,
@@ -281,6 +301,8 @@ const createSummaryHandler = ({ store = createSummaryStore() } = {}) => {
       controls: controlSummary.controls,
       warnings: controlSummary.warnings,
       standardCurve: standardCurveSummary,
+      experimentDesign,
+      factorEffects,
       counts: {
         stepLogs: stepLogs.length,
         attachments: attachments.length,

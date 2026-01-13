@@ -1,5 +1,6 @@
 const { User } = require('./user');
 const { ExperimentPlan } = require('./experimentPlan');
+const { ExperimentDesign } = require('./experimentDesign');
 const { ExperimentRun } = require('./experimentRun');
 const { StepLog } = require('./stepLog');
 const { Attachment } = require('./attachment');
@@ -9,6 +10,7 @@ const { Upload } = require('./upload');
 module.exports = {
   User,
   ExperimentPlan,
+  ExperimentDesign,
   ExperimentRun,
   StepLog,
   Attachment,
