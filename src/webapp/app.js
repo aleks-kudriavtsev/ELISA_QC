@@ -10,6 +10,16 @@ const steps = [
     description: "Draft the plate layout and reagent steps for the assay.",
   },
   {
+    id: "incubation",
+    title: "Incubation",
+    description: "Track the incubation countdown with pause/resume controls.",
+  },
+  {
+    id: "substrate",
+    title: "Substrate development",
+    description: "Monitor substrate development timing before readout.",
+  },
+  {
     id: "checklist",
     title: "Checklist",
     description: "Confirm the critical setup steps before running ELISA.",
@@ -65,6 +75,24 @@ const state = {
     data: null,
     runId: null,
   },
+  timers: {
+    incubation: {
+      durationMin: 30,
+      remainingMs: 30 * 60 * 1000,
+      isRunning: false,
+      lastTickAt: null,
+    },
+    substrate: {
+      durationMin: 15,
+      remainingMs: 15 * 60 * 1000,
+      isRunning: false,
+      lastTickAt: null,
+    },
+  },
+  reminders: {
+    incubation: false,
+    substrate: false,
+  },
   runId: `run-${Date.now()}`,
   planId: `plan-${Date.now()}`,
   runStartedAt: new Date().toISOString(),
@@ -74,6 +102,7 @@ const state = {
 const webApp = window.Telegram?.WebApp;
 const mainButton = webApp?.MainButton;
 const backButton = webApp?.BackButton;
+const timerIntervals = {};
 
 const stepList = document.getElementById("stepList");
 const stepKicker = document.getElementById("stepKicker");
@@ -217,6 +246,122 @@ const logStep = (step, status) => {
   const stepLog = buildStepLog(step, status);
   console.info(JSON.stringify(stepLog));
   void sendStepLog(stepLog);
+};
+
+const formatTimerDuration = (durationMs) => {
+  const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+};
+
+const getTimerState = (stepId) => state.timers[stepId];
+
+const stopTimerInterval = (stepId) => {
+  if (timerIntervals[stepId]) {
+    clearInterval(timerIntervals[stepId]);
+    delete timerIntervals[stepId];
+  }
+};
+
+const setTimerState = (stepId, nextState) => {
+  state.timers[stepId] = { ...state.timers[stepId], ...nextState };
+};
+
+const setReminderState = (stepId, isActive) => {
+  state.reminders[stepId] = isActive;
+};
+
+const tickTimer = (stepId) => {
+  const timerState = getTimerState(stepId);
+  if (!timerState?.isRunning) {
+    stopTimerInterval(stepId);
+    return;
+  }
+
+  const now = Date.now();
+  const elapsed = now - (timerState.lastTickAt || now);
+  const remainingMs = Math.max(0, timerState.remainingMs - elapsed);
+  setTimerState(stepId, { remainingMs, lastTickAt: now });
+
+  if (remainingMs === 0) {
+    setTimerState(stepId, { isRunning: false, lastTickAt: null });
+    stopTimerInterval(stepId);
+    setReminderState(stepId, true);
+    const step = steps.find((entry) => entry.id === stepId);
+    if (step) {
+      logStep(step, "finished");
+    }
+    if (webApp?.HapticFeedback) {
+      webApp.HapticFeedback.notificationOccurred("success");
+    }
+  }
+
+  render();
+};
+
+const startTimer = (stepId) => {
+  const timerState = getTimerState(stepId);
+  if (!timerState || timerState.isRunning || timerState.remainingMs === 0) {
+    return;
+  }
+
+  setTimerState(stepId, { isRunning: true, lastTickAt: Date.now() });
+  if (!timerIntervals[stepId]) {
+    timerIntervals[stepId] = setInterval(() => tickTimer(stepId), 1000);
+  }
+  render();
+};
+
+const pauseTimer = (stepId) => {
+  const timerState = getTimerState(stepId);
+  if (!timerState?.isRunning) {
+    return;
+  }
+
+  const now = Date.now();
+  const elapsed = now - (timerState.lastTickAt || now);
+  const remainingMs = Math.max(0, timerState.remainingMs - elapsed);
+  setTimerState(stepId, { isRunning: false, lastTickAt: null, remainingMs });
+  stopTimerInterval(stepId);
+  render();
+};
+
+const resetTimer = (stepId) => {
+  const timerState = getTimerState(stepId);
+  if (!timerState) {
+    return;
+  }
+  const nextRemainingMs = timerState.durationMin * 60 * 1000;
+  setTimerState(stepId, {
+    remainingMs: nextRemainingMs,
+    isRunning: false,
+    lastTickAt: null,
+  });
+  stopTimerInterval(stepId);
+  setReminderState(stepId, false);
+  render();
+};
+
+const updateTimerDuration = (stepId, nextDurationMin) => {
+  if (!Number.isFinite(nextDurationMin) || nextDurationMin <= 0) {
+    return;
+  }
+  const timerState = getTimerState(stepId);
+  if (!timerState || timerState.isRunning) {
+    return;
+  }
+  setTimerState(stepId, {
+    durationMin: nextDurationMin,
+    remainingMs: nextDurationMin * 60 * 1000,
+  });
+  setReminderState(stepId, false);
+  render();
+};
+
+const clearReminder = (stepId) => {
+  setReminderState(stepId, false);
+  render();
 };
 
 const logUploadStep = (status) => {
@@ -436,7 +581,14 @@ const renderStepList = () => {
     const label = document.createElement("span");
     label.textContent = step.title;
 
-    item.append(badge, label);
+    const reminderBadge = document.createElement("span");
+    reminderBadge.className = "reminderBadge";
+    if (state.reminders[step.id]) {
+      reminderBadge.textContent = "⏰";
+      reminderBadge.title = "Reminder active";
+    }
+
+    item.append(badge, label, reminderBadge);
     item.addEventListener("click", () => moveToStep(index));
     stepList.appendChild(item);
   });
@@ -682,6 +834,102 @@ const renderUploads = () => {
   return card;
 };
 
+const renderTimerStep = (stepId, title, description) => {
+  const card = document.createElement("div");
+  card.className = "card timerCard";
+
+  const timerState = getTimerState(stepId);
+  if (!timerState) {
+    card.appendChild(
+      createParagraph("Timer unavailable", "No timer configured for this step."),
+    );
+    return card;
+  }
+
+  const header = createParagraph(title, description);
+  const timerDisplay = document.createElement("div");
+  timerDisplay.className = "timerDisplay";
+  timerDisplay.textContent = formatTimerDuration(timerState.remainingMs);
+
+  const status = document.createElement("div");
+  status.className = "timerStatus";
+  const statusText = timerState.isRunning
+    ? "Running"
+    : timerState.remainingMs === 0
+      ? "Complete"
+      : timerState.remainingMs === timerState.durationMin * 60 * 1000
+        ? "Ready"
+        : "Paused";
+  status.textContent = `Status: ${statusText}`;
+
+  const durationRow = document.createElement("div");
+  durationRow.className = "timerRow";
+  const durationLabel = document.createElement("label");
+  durationLabel.className = "timerLabel";
+  durationLabel.textContent = "Duration (min)";
+  const durationInput = document.createElement("input");
+  durationInput.type = "number";
+  durationInput.min = "1";
+  durationInput.value = String(timerState.durationMin);
+  durationInput.disabled = timerState.isRunning;
+  durationInput.addEventListener("change", (event) => {
+    const nextValue = Number.parseInt(event.target.value, 10);
+    updateTimerDuration(stepId, nextValue);
+  });
+  durationLabel.appendChild(durationInput);
+  durationRow.appendChild(durationLabel);
+
+  const controls = document.createElement("div");
+  controls.className = "timerControls";
+
+  const startLabel =
+    timerState.remainingMs === timerState.durationMin * 60 * 1000
+      ? "Start"
+      : "Resume";
+
+  if (!timerState.isRunning && timerState.remainingMs > 0) {
+    const startButton = document.createElement("button");
+    startButton.type = "button";
+    startButton.className = "primaryButton";
+    startButton.textContent = startLabel;
+    startButton.addEventListener("click", () => startTimer(stepId));
+    controls.appendChild(startButton);
+  }
+
+  if (timerState.isRunning) {
+    const pauseButton = document.createElement("button");
+    pauseButton.type = "button";
+    pauseButton.className = "ghostButton";
+    pauseButton.textContent = "Pause";
+    pauseButton.addEventListener("click", () => pauseTimer(stepId));
+    controls.appendChild(pauseButton);
+  }
+
+  const resetButton = document.createElement("button");
+  resetButton.type = "button";
+  resetButton.className = "ghostButton";
+  resetButton.textContent = "Reset";
+  resetButton.addEventListener("click", () => resetTimer(stepId));
+  controls.appendChild(resetButton);
+
+  card.append(header, timerDisplay, status, durationRow, controls);
+
+  if (state.reminders[stepId]) {
+    const reminder = document.createElement("div");
+    reminder.className = "timerReminder";
+    reminder.textContent = "Reminder: timer finished.";
+    const clearButton = document.createElement("button");
+    clearButton.type = "button";
+    clearButton.className = "ghostButton";
+    clearButton.textContent = "Clear reminder";
+    clearButton.addEventListener("click", () => clearReminder(stepId));
+    reminder.appendChild(clearButton);
+    card.appendChild(reminder);
+  }
+
+  return card;
+};
+
 const renderSummary = () => {
   const card = document.createElement("div");
   card.className = "card";
@@ -821,6 +1069,24 @@ const renderStepContent = (stepId) => {
       break;
     case "plan":
       stepContent.appendChild(renderPlanBuilder());
+      break;
+    case "incubation":
+      stepContent.appendChild(
+        renderTimerStep(
+          "incubation",
+          "Incubation timer",
+          "Start and pause the incubation timer as needed.",
+        ),
+      );
+      break;
+    case "substrate":
+      stepContent.appendChild(
+        renderTimerStep(
+          "substrate",
+          "Substrate timer",
+          "Track substrate development and stop when ready.",
+        ),
+      );
       break;
     case "checklist":
       stepContent.appendChild(renderChecklist());

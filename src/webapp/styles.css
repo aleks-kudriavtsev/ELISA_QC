@@ -117,6 +117,12 @@ body {
   font-size: 12px;
 }
 
+.reminderBadge {
+  margin-left: auto;
+  font-size: 16px;
+  color: var(--tg-theme-button-color, #2f80ed);
+}
+
 .stepHeader {
   margin-bottom: 20px;
 }
@@ -248,6 +254,52 @@ select {
 
 .summaryAttachmentList a:hover {
   text-decoration: underline;
+}
+
+.timerCard {
+  display: grid;
+  gap: 12px;
+}
+
+.timerDisplay {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.timerStatus {
+  color: var(--tg-theme-hint-color, #6b7280);
+}
+
+.timerRow {
+  display: flex;
+  gap: 12px;
+}
+
+.timerLabel {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tg-theme-hint-color, #6b7280);
+}
+
+.timerControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.timerReminder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(47, 128, 237, 0.15);
+  color: var(--tg-theme-text-color, #1f2330);
 }
 
 .uploadStatus {
