@@ -49,3 +49,14 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+## Backend API (Node.js)
+
+Минимальный сервер находится в `src/server`.
+
+```bash
+cd src/server
+npm start
+```
+
+По умолчанию сервер доступен на `http://localhost:3001` и возвращает health‑проверку на `GET /api/health`.

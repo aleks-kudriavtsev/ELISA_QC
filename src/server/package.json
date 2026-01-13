@@ -1,0 +1,11 @@
+{
+  "name": "elisa-qc-server",
+  "version": "0.1.0",
+  "description": "Minimal API server for ELISA QC prototype",
+  "private": true,
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
