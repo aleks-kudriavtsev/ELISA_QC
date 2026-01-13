@@ -1,4 +1,9 @@
+const { getProtocolSchema } = require('../protocols');
 const { requiredFields, validateIsoTimestamp } = require('./common');
+const {
+  validatePlanAgainstProtocol,
+  validateProtocolReference,
+} = require('./protocolValidation');
 
 const validateExperimentPlan = (payload) => {
   const errors = [];
@@ -12,6 +17,15 @@ const validateExperimentPlan = (payload) => {
   errors.push(...validateIsoTimestamp(payload.createdAt, 'ExperimentPlan.createdAt'));
   if (payload.steps && !Array.isArray(payload.steps)) {
     errors.push('ExperimentPlan.steps must be an array');
+  }
+  if (payload.protocolId) {
+    const protocolSchema = getProtocolSchema(payload.protocolId);
+    errors.push(
+      ...validateProtocolReference(payload, protocolSchema, 'ExperimentPlan'),
+    );
+    if (protocolSchema) {
+      errors.push(...validatePlanAgainstProtocol(payload, protocolSchema));
+    }
   }
   return errors;
 };

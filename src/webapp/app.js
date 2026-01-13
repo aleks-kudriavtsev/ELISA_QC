@@ -26,9 +26,25 @@ const steps = [
   },
 ];
 
+const protocolSources = [
+  { fileName: "directElisa.json" },
+  { fileName: "indirectElisa.json" },
+  { fileName: "sandwichElisa.json" },
+  { fileName: "competitiveElisa.json" },
+];
+
+const fieldLabelMap = {
+  temperatureC: "Temperature (°C)",
+  timeMin: "Time (min)",
+  volumeUl: "Volume (µL)",
+  concentrationUgMl: "Concentration (µg/mL)",
+  od: "Optical density (OD)",
+};
+
 const state = {
   currentStepIndex: 0,
-  selectedProtocol: "ELISA-QC-v1",
+  selectedProtocolId: null,
+  protocols: {},
   planItems: ["Prepare plate map", "Calibrate reader"],
   checklist: {
     "Calibrate pipettes": false,
@@ -36,6 +52,8 @@ const state = {
     "Verify incubation times": false,
   },
   uploads: [],
+  runId: `run-${Date.now()}`,
+  stepLogSequence: 0,
 };
 
 const webApp = window.Telegram?.WebApp;
@@ -52,14 +70,91 @@ const progressBar = document.getElementById("progressBar");
 const fallbackNextButton = document.getElementById("nextButton");
 const fallbackBackButton = document.getElementById("backButton");
 
-const protocolOptions = ["ELISA-QC-v1", "ELISA-QC-v2", "Custom schema"];
+const resolveProtocolId = (schema, fallbackId) =>
+  schema?.properties?.protocolId?.default || schema?.protocolId || fallbackId;
 
-const logStep = (stepName, status) => {
-  const message = {
-    step: stepName,
-    status,
-    timestamp: new Date().toISOString(),
+const resolveProtocolName = (schema, fallbackId) =>
+  schema?.properties?.name?.const || schema?.title || fallbackId;
+
+const resolveProtocolVersion = (schema) =>
+  schema?.properties?.schemaVersion?.default || schema?.schemaVersion;
+
+const extractExpectedFieldIds = (expectedFieldsSchema) => {
+  const constraints = expectedFieldsSchema?.allOf || [];
+  return constraints
+    .map((constraint) => constraint?.contains?.properties?.fieldId?.const)
+    .filter(Boolean);
+};
+
+const parseProtocolSchema = (schema, fallbackId) => {
+  const protocolId = resolveProtocolId(schema, fallbackId);
+  const protocolName = resolveProtocolName(schema, protocolId);
+  const protocolVersion = resolveProtocolVersion(schema);
+  const stepSchemas = schema?.properties?.steps?.prefixItems || [];
+  const stepsFromSchema = stepSchemas
+    .map((stepSchema) => ({
+      stepId:
+        stepSchema?.properties?.id?.const || stepSchema?.properties?.id?.default,
+      stepName:
+        stepSchema?.properties?.name?.const ||
+        stepSchema?.properties?.name?.default,
+      expectedFieldIds: extractExpectedFieldIds(
+        stepSchema?.properties?.expectedFields,
+      ),
+    }))
+    .filter((step) => step.stepId);
+
+  return {
+    protocolId,
+    protocolName,
+    protocolVersion,
+    steps: stepsFromSchema,
   };
+};
+
+const loadProtocols = async () => {
+  const responses = await Promise.all(
+    protocolSources.map(async (source) => {
+      const response = await fetch(`/protocols/elisa/${source.fileName}`);
+      if (!response.ok) {
+        return null;
+      }
+      const schema = await response.json();
+      return parseProtocolSchema(schema, source.fileName);
+    }),
+  );
+
+  const protocolMap = responses.reduce((accumulator, entry) => {
+    if (!entry) {
+      return accumulator;
+    }
+    accumulator[entry.protocolId] = entry;
+    return accumulator;
+  }, {});
+
+  state.protocols = protocolMap;
+  if (!state.selectedProtocolId) {
+    state.selectedProtocolId = responses.find((entry) => entry)?.protocolId || null;
+  }
+};
+
+const buildStepLog = (step, status) => {
+  state.stepLogSequence += 1;
+  const timestamp = new Date().toISOString();
+  const message = `step=${step.id} name=${step.title} status=${status} timestamp=${timestamp}`;
+  return {
+    id: `step-${state.stepLogSequence}`,
+    runId: state.runId,
+    stepId: step.id,
+    stepName: step.title,
+    status,
+    timestamp,
+    message,
+  };
+};
+
+const logStep = (step, status) => {
+  const message = buildStepLog(step, status);
   console.info(JSON.stringify(message));
 };
 
@@ -98,18 +193,28 @@ const renderProtocolSelection = () => {
   card.className = "card";
 
   const select = document.createElement("select");
-  protocolOptions.forEach((option) => {
+  const protocols = Object.values(state.protocols);
+  if (protocols.length === 0) {
     const entry = document.createElement("option");
-    entry.value = option;
-    entry.textContent = option;
-    if (option === state.selectedProtocol) {
-      entry.selected = true;
-    }
+    entry.textContent = "No protocols loaded";
+    entry.value = "";
     select.appendChild(entry);
-  });
+    select.disabled = true;
+  } else {
+    protocols.forEach((protocol) => {
+      const entry = document.createElement("option");
+      entry.value = protocol.protocolId;
+      entry.textContent = `${protocol.protocolName} (v${protocol.protocolVersion || "n/a"})`;
+      if (protocol.protocolId === state.selectedProtocolId) {
+        entry.selected = true;
+      }
+      select.appendChild(entry);
+    });
+  }
 
   select.addEventListener("change", (event) => {
-    state.selectedProtocol = event.target.value;
+    state.selectedProtocolId = event.target.value;
+    render();
   });
 
   card.append(
@@ -121,6 +226,51 @@ const renderProtocolSelection = () => {
   );
 
   return card;
+};
+
+const renderExpectedFields = () => {
+  const protocol = state.protocols[state.selectedProtocolId];
+  if (!protocol) {
+    return createParagraph(
+      "Protocol fields",
+      "Load a protocol schema to view expected fields.",
+    );
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "card";
+
+  const heading = document.createElement("strong");
+  heading.textContent = "Expected fields by step";
+  wrapper.appendChild(heading);
+
+  protocol.steps.forEach((step) => {
+    const stepBlock = document.createElement("div");
+    stepBlock.className = "expectedStep";
+    const stepTitle = document.createElement("div");
+    stepTitle.className = "expectedStepTitle";
+    stepTitle.textContent = step.stepName || step.stepId;
+    stepBlock.appendChild(stepTitle);
+
+    const fieldList = document.createElement("ul");
+    fieldList.className = "expectedFieldList";
+    if (step.expectedFieldIds.length === 0) {
+      const empty = document.createElement("li");
+      empty.textContent = "No required fields.";
+      fieldList.appendChild(empty);
+    } else {
+      step.expectedFieldIds.forEach((fieldId) => {
+        const item = document.createElement("li");
+        item.textContent = fieldLabelMap[fieldId] || fieldId;
+        fieldList.appendChild(item);
+      });
+    }
+
+    stepBlock.appendChild(fieldList);
+    wrapper.appendChild(stepBlock);
+  });
+
+  return wrapper;
 };
 
 const renderPlanBuilder = () => {
@@ -167,7 +317,10 @@ const renderPlanBuilder = () => {
   row.append(input, addButton);
   card.appendChild(row);
 
-  return card;
+  const wrapper = document.createElement("div");
+  wrapper.append(card, renderExpectedFields());
+
+  return wrapper;
 };
 
 const renderChecklist = () => {
@@ -246,7 +399,10 @@ const renderSummary = () => {
   const checklistTotal = Object.keys(state.checklist).length;
 
   summaryGrid.append(
-    summaryRow("Protocol", state.selectedProtocol),
+    summaryRow(
+      "Protocol",
+      state.protocols[state.selectedProtocolId]?.protocolName || "Not selected",
+    ),
     summaryRow("Plan steps", `${state.planItems.length} items`),
     summaryRow("Checklist", `${checklistDone}/${checklistTotal} complete`),
     summaryRow("Uploads", `${state.uploads.length} files`),
@@ -341,14 +497,14 @@ const moveToStep = (nextIndex) => {
   const nextStep = steps[nextIndex];
 
   if (currentStep && nextIndex !== state.currentStepIndex) {
-    logStep(currentStep.title, "finished");
+    logStep(currentStep, "finished");
   }
 
   state.currentStepIndex = nextIndex;
   render();
 
   if (nextStep) {
-    logStep(nextStep.title, "started");
+    logStep(nextStep, "started");
   }
 };
 
@@ -356,7 +512,7 @@ const handleNext = () => {
   if (state.currentStepIndex < steps.length - 1) {
     moveToStep(state.currentStepIndex + 1);
   } else {
-    logStep(steps[state.currentStepIndex].title, "finished");
+    logStep(steps[state.currentStepIndex], "finished");
     if (webApp?.HapticFeedback) {
       webApp.HapticFeedback.notificationOccurred("success");
     }
@@ -397,5 +553,14 @@ if (webApp) {
   webApp.expand();
 }
 
-render();
-logStep(steps[state.currentStepIndex].title, "started");
+const initializeApp = async () => {
+  try {
+    await loadProtocols();
+  } catch (error) {
+    console.warn("Failed to load protocol schemas.", error);
+  }
+  render();
+  logStep(steps[state.currentStepIndex], "started");
+};
+
+initializeApp();
