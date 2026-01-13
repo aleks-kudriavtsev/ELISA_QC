@@ -1003,6 +1003,51 @@ const renderSummary = () => {
     );
     resultsCard.appendChild(details);
 
+    const warnings = summaryData.warnings || [];
+    if (warnings.length > 0) {
+      const warningBlock = document.createElement("div");
+      warningBlock.className = "summaryWarnings";
+      const warningTitle = document.createElement("strong");
+      warningTitle.textContent = "Warnings";
+      warningBlock.appendChild(warningTitle);
+      const warningList = document.createElement("ul");
+      warningList.className = "summaryWarningList";
+      warnings.forEach((warning) => {
+        const item = document.createElement("li");
+        item.textContent = warning.message || "Control deviation detected.";
+        warningList.appendChild(item);
+      });
+      warningBlock.appendChild(warningList);
+      resultsCard.appendChild(warningBlock);
+    }
+
+    const controls = summaryData.controls || [];
+    if (controls.length > 0) {
+      const controlBlock = document.createElement("div");
+      controlBlock.className = "summaryControls";
+      const controlTitle = document.createElement("strong");
+      controlTitle.textContent = "Control wells";
+      controlBlock.appendChild(controlTitle);
+      const controlList = document.createElement("ul");
+      controlList.className = "summaryControlList";
+      controls.forEach((control) => {
+        const item = document.createElement("li");
+        const averageOd = Number.isFinite(control.averageOd)
+          ? control.averageOd.toFixed(3)
+          : "N/A";
+        const rangeText = control.range
+          ? `${control.range.min}-${control.range.max}`
+          : "No range";
+        item.textContent = `${control.controlLabel}: avg OD ${averageOd} (${rangeText})`;
+        if (control.outOfRange) {
+          item.className = "summaryControl--alert";
+        }
+        controlList.appendChild(item);
+      });
+      controlBlock.appendChild(controlList);
+      resultsCard.appendChild(controlBlock);
+    }
+
     const attachments = summaryData.attachments || [];
     const attachmentBlock = document.createElement("div");
     attachmentBlock.className = "summaryAttachments";
