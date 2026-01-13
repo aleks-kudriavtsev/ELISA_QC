@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ELISA QC WebApp</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="appHeader">
+      <div>
+        <p class="appSubtitle">ELISA QC</p>
+        <h1 class="appTitle">Experiment flow</h1>
+      </div>
+      <div class="progressWrap">
+        <span id="progressLabel" class="progressLabel">0% complete</span>
+        <div class="progressTrack">
+          <div id="progressBar" class="progressBar"></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="appMain">
+      <section class="stepNav">
+        <h2 class="sectionTitle">Navigation</h2>
+        <ol id="stepList" class="stepList"></ol>
+      </section>
+
+      <section class="stepPanel">
+        <div class="stepHeader">
+          <p id="stepKicker" class="stepKicker"></p>
+          <h2 id="stepTitle" class="stepTitle"></h2>
+          <p id="stepDescription" class="stepDescription"></p>
+        </div>
+
+        <div id="stepContent" class="stepContent"></div>
+
+        <div class="fallbackNav">
+          <button id="backButton" class="ghostButton" type="button">Back</button>
+          <button id="nextButton" class="primaryButton" type="button">Next</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
