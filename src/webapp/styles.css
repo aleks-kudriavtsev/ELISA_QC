@@ -242,6 +242,24 @@ select {
   gap: 8px;
 }
 
+.summaryWarnings,
+.summaryControls {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.summaryWarningList,
+.summaryControlList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.summaryControl--alert {
+  color: var(--tg-theme-destructive-text-color, #b00020);
+  font-weight: 600;
+}
+
 .summaryAttachmentList {
   margin: 0;
   padding-left: 18px;

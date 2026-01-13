@@ -1,6 +1,11 @@
+const fs = require('fs/promises');
+const path = require('path');
+
 const { ExperimentRun, StepLog } = require('../models');
 const { logStep } = require('../logging/stepLogger');
 const { validateExperimentRun, validateStepLog } = require('../validation');
+
+const defaultStorageRoot = path.resolve(__dirname, '../../../..');
 
 const createSummaryStore = () => ({
   runs: [],
@@ -14,6 +19,129 @@ const findLatestTimestamp = (timestamps) =>
   timestamps
     .filter(Boolean)
     .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null;
+
+const normalizeHeader = (value) => value.replace(/^\uFEFF/, '').trim();
+
+const parseCsvRows = (content) => {
+  const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length < 2) {
+    return { headers: [], rows: [] };
+  }
+  const headers = lines[0].split(',').map((entry) => normalizeHeader(entry));
+  const rows = lines.slice(1).map((line) => {
+    const values = line.split(',').map((entry) => entry.trim());
+    return headers.reduce((accumulator, header, index) => {
+      accumulator[header] = values[index];
+      return accumulator;
+    }, {});
+  });
+  return { headers, rows };
+};
+
+const parseControlRange = (sampleId) => {
+  if (!sampleId) {
+    return null;
+  }
+
+  const rangeMatch =
+    sampleId.match(/\[(?<min>[\d.]+)\s*[-–]\s*(?<max>[\d.]+)\]/) ||
+    sampleId.match(/\((?<min>[\d.]+)\s*[-–]\s*(?<max>[\d.]+)\)/) ||
+    sampleId.match(/min\s*=?\s*(?<min>[\d.]+)\s*max\s*=?\s*(?<max>[\d.]+)/i);
+
+  if (!rangeMatch?.groups) {
+    return null;
+  }
+
+  const min = Number(rangeMatch.groups.min);
+  const max = Number(rangeMatch.groups.max);
+  if (Number.isNaN(min) || Number.isNaN(max)) {
+    return null;
+  }
+
+  return { min, max };
+};
+
+const normalizeControlLabel = (sampleId) =>
+  sampleId
+    .replace(/\s*[\[(].*?[\])]\s*/g, '')
+    .replace(/\s*min\s*=?\s*[\d.]+\s*max\s*=?\s*[\d.]+/i, '')
+    .trim();
+
+const buildControlSummary = async ({
+  store,
+  runId,
+  storageRoot = defaultStorageRoot,
+}) => {
+  const records = store.instrumentRecords.filter((entry) => entry.runId === runId);
+  const controlMap = new Map();
+  const warnings = [];
+
+  for (const record of records) {
+    if (!record.dataPath) {
+      continue;
+    }
+    const absolutePath = path.join(storageRoot, record.dataPath);
+    let content;
+    try {
+      content = await fs.readFile(absolutePath, 'utf8');
+    } catch (error) {
+      continue;
+    }
+
+    const { rows } = parseCsvRows(content);
+    rows.forEach((row) => {
+      const sampleId = row.SampleID || row.sampleId || '';
+      if (!/control/i.test(sampleId)) {
+        return;
+      }
+      const odValue = Number(row.OD ?? row.od);
+      if (Number.isNaN(odValue)) {
+        return;
+      }
+      const controlLabel = normalizeControlLabel(sampleId) || sampleId;
+      const range = parseControlRange(sampleId);
+      const existing = controlMap.get(controlLabel) || {
+        controlLabel,
+        readings: [],
+        range: range || null,
+      };
+      existing.readings.push(odValue);
+      if (!existing.range && range) {
+        existing.range = range;
+      }
+      controlMap.set(controlLabel, existing);
+    });
+  }
+
+  const controls = Array.from(controlMap.values()).map((entry) => {
+    const averageOd =
+      entry.readings.reduce((total, value) => total + value, 0) /
+      entry.readings.length;
+    const outOfRange =
+      entry.range &&
+      (averageOd < entry.range.min || averageOd > entry.range.max);
+    if (outOfRange) {
+      warnings.push({
+        type: 'control_out_of_range',
+        message: `${entry.controlLabel} average OD ${averageOd.toFixed(
+          3,
+        )} outside ${entry.range.min}-${entry.range.max}.`,
+        controlLabel: entry.controlLabel,
+        averageOd,
+        range: entry.range,
+      });
+    }
+    return {
+      controlLabel: entry.controlLabel,
+      readings: entry.readings.length,
+      averageOd,
+      range: entry.range,
+      outOfRange,
+    };
+  });
+
+  return { controls, warnings };
+};
 
 const parseJsonBody = async (request) => {
   const chunks = [];
@@ -148,7 +276,7 @@ const createStepLogHandler = ({ store = createSummaryStore(), logger = console }
 };
 
 const createSummaryHandler = ({ store = createSummaryStore() } = {}) => {
-  const handleSummary = (request, response) => {
+  const handleSummary = async (request, response) => {
     if (request.method !== 'GET') {
       response.statusCode = 405;
       response.end();
@@ -178,6 +306,7 @@ const createSummaryHandler = ({ store = createSummaryStore() } = {}) => {
     const attachments = store.attachments
       .filter((entry) => entry.runId === runId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const controlSummary = await buildControlSummary({ store, runId });
     const latestTimestamp = findLatestTimestamp([
       run.finishedAt,
       run.startedAt,
@@ -189,6 +318,8 @@ const createSummaryHandler = ({ store = createSummaryStore() } = {}) => {
       run,
       stepLogs,
       attachments,
+      controls: controlSummary.controls,
+      warnings: controlSummary.warnings,
       counts: {
         stepLogs: stepLogs.length,
         attachments: attachments.length,
