@@ -115,3 +115,42 @@ body {
   font-size: 22px;
   color: var(--tg-theme-text-color, #1f2328);
 }
+
+.app__protocols {
+  display: grid;
+  gap: 12px;
+}
+
+.app__protocol {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid
+    color-mix(in srgb, var(--tg-theme-hint-color, #667085) 30%, transparent);
+  background: var(--tg-theme-bg-color, #f6f7fb);
+  color: inherit;
+  text-align: left;
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.app__protocol:hover,
+.app__protocol:focus {
+  border-color: var(--tg-theme-button-color, #2f80ed);
+}
+
+.app__protocol-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.app__protocol-meta {
+  font-size: 13px;
+  color: var(--tg-theme-hint-color, #667085);
+}
+
+.app__protocol-summary {
+  display: grid;
+  gap: 8px;
+}
