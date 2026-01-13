@@ -4,6 +4,7 @@ const { validateExperimentRun } = require('./experimentRunValidation');
 const { validateStepLog } = require('./stepLogValidation');
 const { validateAttachment } = require('./attachmentValidation');
 const { validateInstrumentRecord } = require('./instrumentRecordValidation');
+const { validateUpload } = require('./uploadValidation');
 const {
   extractProtocolSteps,
   validatePlanAgainstProtocol,
@@ -18,6 +19,7 @@ module.exports = {
   validateStepLog,
   validateAttachment,
   validateInstrumentRecord,
+  validateUpload,
   extractProtocolSteps,
   validatePlanAgainstProtocol,
   validateProtocolReference,

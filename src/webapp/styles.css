@@ -221,6 +221,34 @@ select {
   justify-content: space-between;
 }
 
+.uploadStatus {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid transparent;
+  display: grid;
+  gap: 8px;
+}
+
+.uploadStatus--success {
+  border-color: rgba(46, 204, 113, 0.6);
+}
+
+.uploadStatus--error {
+  border-color: rgba(231, 76, 60, 0.7);
+}
+
+.uploadStatus--uploading {
+  border-color: rgba(241, 196, 15, 0.7);
+}
+
+.uploadErrors,
+.uploadSuccessList {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--tg-theme-hint-color, #6b7280);
+}
+
 .expectedStep {
   margin-top: 12px;
   padding-top: 12px;

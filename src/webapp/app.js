@@ -52,6 +52,12 @@ const state = {
     "Verify incubation times": false,
   },
   uploads: [],
+  uploadStatus: {
+    state: "idle",
+    message: "",
+    errors: [],
+    items: [],
+  },
   runId: `run-${Date.now()}`,
   stepLogSequence: 0,
 };
@@ -156,6 +162,156 @@ const buildStepLog = (step, status) => {
 const logStep = (step, status) => {
   const message = buildStepLog(step, status);
   console.info(JSON.stringify(message));
+};
+
+const logUploadStep = (status) => {
+  const uploadStep = steps.find((entry) => entry.id === "uploads");
+  if (!uploadStep) {
+    return;
+  }
+  logStep(uploadStep, status);
+};
+
+const requiredCsvHeaders = ["Well", "OD", "Wavelength", "SampleID"];
+
+const parseCsvHeader = (content) =>
+  content
+    .split(/\r?\n/)
+    .find((line) => line.trim().length > 0)
+    ?.split(",")
+    .map((header) => header.replace(/^\uFEFF/, "").trim()) || [];
+
+const validateCsvContent = (content) => {
+  const errors = [];
+  const headers = parseCsvHeader(content);
+  if (headers.length === 0) {
+    errors.push("CSV must include a header row.");
+    return errors;
+  }
+  const missing = requiredCsvHeaders.filter((header) => !headers.includes(header));
+  if (missing.length > 0) {
+    errors.push(`Missing columns: ${missing.join(", ")}`);
+  }
+  const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length < 2) {
+    errors.push("CSV must include at least one data row.");
+  }
+  return errors;
+};
+
+const readFileContent = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    if (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv")) {
+      reader.onload = () =>
+        resolve({ text: String(reader.result), base64: null, kind: "csv" });
+      reader.readAsText(file);
+    } else {
+      reader.onload = () => {
+        const result = String(reader.result);
+        const base64 = result.split(",")[1] || "";
+        resolve({ text: null, base64, kind: "image" });
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+const updateUploadStatus = ({ state: statusState, message, errors, items }) => {
+  state.uploadStatus = {
+    state: statusState,
+    message,
+    errors: errors || [],
+    items: items || [],
+  };
+  render();
+};
+
+const uploadFiles = async () => {
+  if (state.uploads.length === 0) {
+    updateUploadStatus({
+      state: "error",
+      message: "Select at least one file before uploading.",
+      errors: [],
+    });
+    return;
+  }
+
+  logUploadStep("started");
+  updateUploadStatus({ state: "uploading", message: "Uploading files…", errors: [] });
+
+  try {
+    const filesPayload = await Promise.all(
+      state.uploads.map(async (file) => {
+        const content = await readFileContent(file);
+        if (content.kind === "csv" && content.text) {
+          const csvErrors = validateCsvContent(content.text);
+          if (csvErrors.length > 0) {
+            throw new Error(`${file.name}: ${csvErrors.join(" ")}`);
+          }
+        }
+
+        return {
+          fileName: file.name,
+          contentType: file.type || "application/octet-stream",
+          kind: content.kind,
+          contentBase64: content.base64,
+          contentText: content.text,
+          sizeBytes: file.size,
+        };
+      }),
+    );
+
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Telegram-Init-Data": webApp?.initData || "",
+      },
+      body: JSON.stringify({
+        runId: state.runId,
+        stepId: "uploads",
+        files: filesPayload,
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const details = payload?.error?.details || [];
+      updateUploadStatus({
+        state: "error",
+        message: payload?.error?.message || "Upload failed.",
+        errors: details.length > 0 ? details : ["Upload failed."],
+      });
+      logUploadStep("failed");
+      if (webApp?.HapticFeedback) {
+        webApp.HapticFeedback.notificationOccurred("error");
+      }
+      return;
+    }
+
+    const payload = await response.json();
+    updateUploadStatus({
+      state: "success",
+      message: `Uploaded ${payload.items?.length || 0} file(s).`,
+      errors: [],
+      items: payload.items || [],
+    });
+    logUploadStep("finished");
+    if (webApp?.HapticFeedback) {
+      webApp.HapticFeedback.notificationOccurred("success");
+    }
+  } catch (error) {
+    updateUploadStatus({
+      state: "error",
+      message: "Upload failed.",
+      errors: [error.message || "Unknown error"],
+    });
+    logUploadStep("failed");
+    if (webApp?.HapticFeedback) {
+      webApp.HapticFeedback.notificationOccurred("error");
+    }
+  }
 };
 
 const updateProgress = () => {
@@ -373,9 +529,47 @@ const renderUploads = () => {
     list.appendChild(item);
   });
 
+  const uploadButton = document.createElement("button");
+  uploadButton.type = "button";
+  uploadButton.className = "primaryButton";
+  uploadButton.textContent =
+    state.uploadStatus.state === "uploading" ? "Uploading…" : "Upload files";
+  uploadButton.disabled =
+    state.uploadStatus.state === "uploading" || state.uploads.length === 0;
+  uploadButton.addEventListener("click", uploadFiles);
+
+  const statusBlock = document.createElement("div");
+  statusBlock.className = `uploadStatus uploadStatus--${state.uploadStatus.state}`;
+  const statusMessage = document.createElement("strong");
+  statusMessage.textContent = state.uploadStatus.message || "No uploads yet.";
+  statusBlock.appendChild(statusMessage);
+
+  if (state.uploadStatus.errors.length > 0) {
+    const errorList = document.createElement("ul");
+    errorList.className = "uploadErrors";
+    state.uploadStatus.errors.forEach((error) => {
+      const item = document.createElement("li");
+      item.textContent = error;
+      errorList.appendChild(item);
+    });
+    statusBlock.appendChild(errorList);
+  }
+
+  if (state.uploadStatus.items.length > 0) {
+    const successList = document.createElement("ul");
+    successList.className = "uploadSuccessList";
+    state.uploadStatus.items.forEach((item) => {
+      const entry = document.createElement("li");
+      entry.textContent = `${item.fileName} → ${item.storagePath}`;
+      successList.appendChild(entry);
+    });
+    statusBlock.appendChild(successList);
+  }
+
   input.addEventListener("change", (event) => {
     const files = Array.from(event.target.files || []);
     state.uploads = files;
+    updateUploadStatus({ state: "idle", message: "", errors: [], items: [] });
     render();
   });
 
@@ -383,6 +577,8 @@ const renderUploads = () => {
     createParagraph("Raw exports", "Store CSV exports and plate images."),
     input,
     list,
+    uploadButton,
+    statusBlock,
   );
 
   return card;
