@@ -211,6 +211,26 @@ select {
   gap: 10px;
 }
 
+.lotBlock {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.lotList {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.lotItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .uploadList,
 .planList {
   margin: 0;
@@ -233,6 +253,18 @@ select {
 
 .summaryStatus {
   margin: 8px 0 0;
+  color: var(--tg-theme-hint-color, #6b7280);
+}
+
+.summaryLots {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.summaryLotList {
+  margin: 0;
+  padding-left: 18px;
   color: var(--tg-theme-hint-color, #6b7280);
 }
 

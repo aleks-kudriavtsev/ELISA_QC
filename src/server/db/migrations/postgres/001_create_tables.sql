@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS experiment_runs (
   status TEXT NOT NULL CHECK (status IN ('running', 'completed', 'failed')),
   started_by_user_id TEXT NOT NULL REFERENCES users(id),
   started_at TIMESTAMPTZ NOT NULL,
-  finished_at TIMESTAMPTZ
+  finished_at TIMESTAMPTZ,
+  lots JSONB NOT NULL DEFAULT '[]'::jsonb
 );
 
 CREATE TABLE IF NOT EXISTS step_logs (
@@ -33,7 +34,8 @@ CREATE TABLE IF NOT EXISTS step_logs (
   step_name TEXT NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('started', 'finished', 'failed')),
   timestamp TIMESTAMPTZ NOT NULL,
-  message TEXT NOT NULL
+  message TEXT NOT NULL,
+  lots JSONB NOT NULL DEFAULT '[]'::jsonb
 );
 
 CREATE TABLE IF NOT EXISTS attachments (

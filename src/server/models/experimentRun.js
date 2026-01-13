@@ -1,3 +1,5 @@
+const { LotBatch } = require('./lotBatch');
+
 class ExperimentRun {
   constructor({
     id,
@@ -10,6 +12,7 @@ class ExperimentRun {
     startedByUserId,
     startedAt,
     finishedAt,
+    lots = [],
   }) {
     this.id = id;
     this.planId = planId;
@@ -21,6 +24,7 @@ class ExperimentRun {
     this.startedByUserId = startedByUserId;
     this.startedAt = startedAt;
     this.finishedAt = finishedAt;
+    this.lots = Array.isArray(lots) ? lots.map((lot) => new LotBatch(lot)) : [];
   }
 }
 

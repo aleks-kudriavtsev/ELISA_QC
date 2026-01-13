@@ -1,3 +1,5 @@
+const { LotBatch } = require('./lotBatch');
+
 class StepLog {
   constructor({
     id,
@@ -7,6 +9,7 @@ class StepLog {
     status,
     timestamp,
     message,
+    lots = [],
   }) {
     this.id = id;
     this.runId = runId;
@@ -15,6 +18,7 @@ class StepLog {
     this.status = status;
     this.timestamp = timestamp;
     this.message = message;
+    this.lots = Array.isArray(lots) ? lots.map((lot) => new LotBatch(lot)) : [];
   }
 }
 

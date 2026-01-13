@@ -1,4 +1,5 @@
 const { allowedStepStatuses, requiredFields, validateIsoTimestamp } = require('./common');
+const { validateLotEntries } = require('./lotValidation');
 
 const validateStepLog = (payload) => {
   const errors = [];
@@ -13,6 +14,7 @@ const validateStepLog = (payload) => {
   if (payload.status && !allowedStepStatuses.has(payload.status)) {
     errors.push('StepLog.status must be started, finished, or failed');
   }
+  errors.push(...validateLotEntries(payload.lots, 'StepLog.lots'));
   return errors;
 };
 

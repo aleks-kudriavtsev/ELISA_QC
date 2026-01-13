@@ -68,6 +68,8 @@ const state = {
     errors: [],
     items: [],
   },
+  lots: [],
+  lotSequence: 0,
   summaryStatus: {
     state: "idle",
     message: "",
@@ -123,6 +125,18 @@ const resolveProtocolName = (schema, fallbackId) =>
 const resolveProtocolVersion = (schema) =>
   schema?.properties?.schemaVersion?.default || schema?.schemaVersion;
 
+const formatLotSummary = (lots) => {
+  if (!Array.isArray(lots) || lots.length === 0) {
+    return "No lots logged";
+  }
+  return lots
+    .map(
+      (lot) =>
+        `${lot.materialType || "material"}:${lot.lotNumber || "unknown"}`,
+    )
+    .join(", ");
+};
+
 const postJson = async (url, payload) => {
   const response = await fetch(url, {
     method: "POST",
@@ -150,6 +164,7 @@ const buildRunPayload = () => ({
   startedByUserId:
     webApp?.initDataUnsafe?.user?.id?.toString() || "user-unknown",
   startedAt: state.runStartedAt,
+  lots: state.lots,
 });
 
 const sendRunPayload = async () => {
@@ -163,7 +178,7 @@ const sendRunPayload = async () => {
 const buildStepLog = (step, status) => {
   state.stepLogSequence += 1;
   const timestamp = new Date().toISOString();
-  const message = `step=${step.id} name=${step.title} status=${status} timestamp=${timestamp}`;
+  const message = `step=${step.id} name=${step.title} status=${status} timestamp=${timestamp} lots=${formatLotSummary(state.lots)}`;
   return {
     id: `step-${state.stepLogSequence}`,
     runId: state.runId,
@@ -172,6 +187,7 @@ const buildStepLog = (step, status) => {
     status,
     timestamp,
     message,
+    lots: state.lots,
   };
 };
 
@@ -760,6 +776,81 @@ const renderChecklist = () => {
     list,
   );
 
+  const lotBlock = document.createElement("div");
+  lotBlock.className = "lotBlock";
+  const lotTitle = document.createElement("strong");
+  lotTitle.textContent = "Lot / batch tracking";
+
+  const lotForm = document.createElement("div");
+  lotForm.className = "inputRow";
+
+  const typeSelect = document.createElement("select");
+  ["reagent", "antibody", "buffer"].forEach((type) => {
+    const option = document.createElement("option");
+    option.value = type;
+    option.textContent = type;
+    typeSelect.appendChild(option);
+  });
+
+  const lotInput = document.createElement("input");
+  lotInput.type = "text";
+  lotInput.placeholder = "Lot number";
+
+  const lotDescription = document.createElement("input");
+  lotDescription.type = "text";
+  lotDescription.placeholder = "Description (optional)";
+
+  const addLotButton = document.createElement("button");
+  addLotButton.type = "button";
+  addLotButton.className = "primaryButton";
+  addLotButton.textContent = "Add lot";
+  addLotButton.addEventListener("click", () => {
+    const lotNumber = lotInput.value.trim();
+    if (!lotNumber) {
+      return;
+    }
+    state.lotSequence += 1;
+    state.lots.push({
+      id: `lot-${state.lotSequence}`,
+      materialType: typeSelect.value,
+      lotNumber,
+      description: lotDescription.value.trim(),
+    });
+    lotInput.value = "";
+    lotDescription.value = "";
+    render();
+  });
+
+  lotForm.append(typeSelect, lotInput, lotDescription, addLotButton);
+
+  const lotList = document.createElement("ul");
+  lotList.className = "lotList";
+  if (state.lots.length === 0) {
+    const empty = document.createElement("li");
+    empty.textContent = "No lots added yet.";
+    lotList.appendChild(empty);
+  } else {
+    state.lots.forEach((lot) => {
+      const item = document.createElement("li");
+      item.className = "lotItem";
+      const description = lot.description ? ` · ${lot.description}` : "";
+      item.textContent = `${lot.materialType}: ${lot.lotNumber}${description}`;
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "ghostButton";
+      removeButton.textContent = "Remove";
+      removeButton.addEventListener("click", () => {
+        state.lots = state.lots.filter((entry) => entry.id !== lot.id);
+        render();
+      });
+      item.appendChild(removeButton);
+      lotList.appendChild(item);
+    });
+  }
+
+  lotBlock.append(lotTitle, lotForm, lotList);
+  card.appendChild(lotBlock);
+
   return card;
 };
 
@@ -948,6 +1039,7 @@ const renderSummary = () => {
     summaryRow("Plan steps", `${state.planItems.length} items`),
     summaryRow("Checklist", `${checklistDone}/${checklistTotal} complete`),
     summaryRow("Uploads", `${state.uploads.length} files`),
+    summaryRow("Lots", `${state.lots.length} tracked`),
   );
 
   card.append(
@@ -1002,6 +1094,50 @@ const renderSummary = () => {
       ),
     );
     resultsCard.appendChild(details);
+
+    const lotReport = document.createElement("div");
+    lotReport.className = "summaryLots";
+    const lotHeader = document.createElement("strong");
+    lotHeader.textContent = "Lot batches";
+    lotReport.appendChild(lotHeader);
+
+    const runLots = summaryData.lots?.run || [];
+    const runLotsList = document.createElement("ul");
+    runLotsList.className = "summaryLotList";
+    if (runLots.length === 0) {
+      const empty = document.createElement("li");
+      empty.textContent = "No run lots recorded.";
+      runLotsList.appendChild(empty);
+    } else {
+      runLots.forEach((lot) => {
+        const item = document.createElement("li");
+        const description = lot.description ? ` · ${lot.description}` : "";
+        item.textContent = `${lot.materialType}: ${lot.lotNumber}${description}`;
+        runLotsList.appendChild(item);
+      });
+    }
+    lotReport.appendChild(runLotsList);
+
+    const stepLots = summaryData.lots?.steps || [];
+    if (stepLots.length > 0) {
+      const stepLotsTitle = document.createElement("strong");
+      stepLotsTitle.textContent = "Step lots";
+      lotReport.appendChild(stepLotsTitle);
+      const stepList = document.createElement("ul");
+      stepList.className = "summaryLotList";
+      stepLots.forEach((step) => {
+        const item = document.createElement("li");
+        const lotText =
+          step.lots && step.lots.length > 0
+            ? formatLotSummary(step.lots)
+            : "No lots logged";
+        item.textContent = `${step.stepName || step.stepId}: ${lotText}`;
+        stepList.appendChild(item);
+      });
+      lotReport.appendChild(stepList);
+    }
+
+    resultsCard.appendChild(lotReport);
 
     const warnings = summaryData.warnings || [];
     if (warnings.length > 0) {
