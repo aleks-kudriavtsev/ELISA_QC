@@ -15,6 +15,40 @@
 - **Backend API** — логика эксперимента, валидация, управление сессиями.
 - **Storage** — хранение файлов, журналирование и доступ к данным.
 
+## Local Development
+
+### Переменные окружения
+
+Для запуска backend нужны переменные окружения:
+
+- `BOT_TOKEN` — токен Telegram-бота.
+- `DATABASE_URL` — строка подключения к базе данных.
+- `STORAGE_PATH` — путь к директории хранения файлов.
+
+Пример для локальной сессии:
+
+```bash
+export BOT_TOKEN=your-telegram-bot-token
+export DATABASE_URL=postgres://user:password@localhost:5432/elisa
+export STORAGE_PATH=./storage
+```
+
+### Backend
+
+```bash
+cd src/server
+npm install
+npm start
+```
+
+### Frontend
+
+```bash
+cd src/webapp
+npm install
+npm run dev
+```
+
 ## Модули
 
 - **Protocol Library** — библиотека протоколов ИФА с параметрами и шагами.
