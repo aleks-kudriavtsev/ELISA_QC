@@ -13,6 +13,20 @@ const {
 const { validateExperimentRun, validateStepLog } = require('../validation');
 
 const defaultStorageRoot = path.resolve(__dirname, '../../../..');
+const summarizeLotTypes = (lots) => {
+  if (!Array.isArray(lots) || lots.length === 0) {
+    return '';
+  }
+  const types = Array.from(
+    lots.reduce((set, lot) => {
+      if (lot?.materialType) {
+        set.add(lot.materialType);
+      }
+      return set;
+    }, new Set()),
+  );
+  return types.join(',');
+};
 
 const createSummaryStore = () => ({
   runs: [],
@@ -233,7 +247,11 @@ const createStepLogHandler = ({ store = createSummaryStore(), logger = console }
         stepName: stepLog.stepName,
         status: stepLog.status,
         timestamp: stepLog.timestamp,
-        details: { runId: stepLog.runId },
+        details: {
+          runId: stepLog.runId,
+          lotCount: stepLog.lots?.length || 0,
+          lotTypes: summarizeLotTypes(stepLog.lots),
+        },
       },
       logger,
     );
@@ -294,10 +312,20 @@ const createSummaryHandler = ({ store = createSummaryStore() } = {}) => {
       ...attachments.map((entry) => entry.createdAt),
     ]);
 
+    const stepLotDetails = stepLogs.map((entry) => ({
+      stepId: entry.stepId,
+      stepName: entry.stepName,
+      lots: entry.lots || [],
+    }));
+
     writeJson(response, 200, {
       run,
       stepLogs,
       attachments,
+      lots: {
+        run: run.lots || [],
+        steps: stepLotDetails,
+      },
       controls: controlSummary.controls,
       warnings: controlSummary.warnings,
       standardCurve: standardCurveSummary,

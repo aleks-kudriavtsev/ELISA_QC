@@ -4,6 +4,7 @@ const {
   validateIsoTimestamp,
 } = require('./common');
 const { validateRunAgainstProtocol } = require('./protocolValidation');
+const { validateLotEntries } = require('./lotValidation');
 
 const validateExperimentRun = (payload, planPayload) => {
   const errors = [];
@@ -25,6 +26,7 @@ const validateExperimentRun = (payload, planPayload) => {
   if (payload.designId && !payload.designRowId) {
     errors.push('ExperimentRun.designRowId is required when designId is provided');
   }
+  errors.push(...validateLotEntries(payload.lots, 'ExperimentRun.lots'));
   if (planPayload) {
     errors.push(...validateRunAgainstProtocol(payload, planPayload));
   }

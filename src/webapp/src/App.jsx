@@ -97,9 +97,19 @@ const initialChecklistSteps = [
     title: "Разведение реагентов",
     fields: [
       {
-        id: "batchNumber",
-        label: "Номер партии реагентов",
+        id: "reagentLotNumber",
+        label: "Партия реагентов",
         placeholder: "Например, RN-2024-11"
+      },
+      {
+        id: "antibodyLotNumber",
+        label: "Партия антител",
+        placeholder: "Например, AB-2024-09"
+      },
+      {
+        id: "bufferLotNumber",
+        label: "Партия буфера",
+        placeholder: "Например, BF-2024-07"
       },
       {
         id: "dilutionRatio",
