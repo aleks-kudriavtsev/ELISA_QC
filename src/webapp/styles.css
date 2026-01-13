@@ -216,9 +216,38 @@ select {
   gap: 12px;
 }
 
+.summaryGrid--compact {
+  margin-top: 12px;
+}
+
 .summaryItem {
   display: flex;
   justify-content: space-between;
+}
+
+.summaryStatus {
+  margin: 8px 0 0;
+  color: var(--tg-theme-hint-color, #6b7280);
+}
+
+.summaryAttachments {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.summaryAttachmentList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.summaryAttachmentList a {
+  color: var(--tg-theme-link-color, #2f80ed);
+  text-decoration: none;
+}
+
+.summaryAttachmentList a:hover {
+  text-decoration: underline;
 }
 
 .uploadStatus {

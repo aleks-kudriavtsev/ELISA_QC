@@ -58,7 +58,16 @@ const state = {
     errors: [],
     items: [],
   },
+  summaryStatus: {
+    state: "idle",
+    message: "",
+    error: "",
+    data: null,
+    runId: null,
+  },
   runId: `run-${Date.now()}`,
+  planId: `plan-${Date.now()}`,
+  runStartedAt: new Date().toISOString(),
   stepLogSequence: 0,
 };
 
@@ -84,6 +93,66 @@ const resolveProtocolName = (schema, fallbackId) =>
 
 const resolveProtocolVersion = (schema) =>
   schema?.properties?.schemaVersion?.default || schema?.schemaVersion;
+
+const postJson = async (url, payload) => {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Telegram-Init-Data": webApp?.initData || "",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorPayload = await response.json().catch(() => ({}));
+    const errorMessage = errorPayload?.error?.message || "Request failed.";
+    throw new Error(errorMessage);
+  }
+
+  return response.json().catch(() => ({}));
+};
+
+const buildRunPayload = () => ({
+  id: state.runId,
+  planId: state.planId,
+  runNumber: 1,
+  status: "running",
+  startedByUserId:
+    webApp?.initDataUnsafe?.user?.id?.toString() || "user-unknown",
+  startedAt: state.runStartedAt,
+});
+
+const sendRunPayload = async () => {
+  try {
+    await postJson("/api/runs", buildRunPayload());
+  } catch (error) {
+    console.warn("Failed to sync run payload.", error);
+  }
+};
+
+const buildStepLog = (step, status) => {
+  state.stepLogSequence += 1;
+  const timestamp = new Date().toISOString();
+  const message = `step=${step.id} name=${step.title} status=${status} timestamp=${timestamp}`;
+  return {
+    id: `step-${state.stepLogSequence}`,
+    runId: state.runId,
+    stepId: step.id,
+    stepName: step.title,
+    status,
+    timestamp,
+    message,
+  };
+};
+
+const sendStepLog = async (stepLog) => {
+  try {
+    await postJson(`/api/runs/${state.runId}/steps`, stepLog);
+  } catch (error) {
+    console.warn("Failed to sync step log.", error);
+  }
+};
 
 const extractExpectedFieldIds = (expectedFieldsSchema) => {
   const constraints = expectedFieldsSchema?.allOf || [];
@@ -144,24 +213,10 @@ const loadProtocols = async () => {
   }
 };
 
-const buildStepLog = (step, status) => {
-  state.stepLogSequence += 1;
-  const timestamp = new Date().toISOString();
-  const message = `step=${step.id} name=${step.title} status=${status} timestamp=${timestamp}`;
-  return {
-    id: `step-${state.stepLogSequence}`,
-    runId: state.runId,
-    stepId: step.id,
-    stepName: step.title,
-    status,
-    timestamp,
-    message,
-  };
-};
-
 const logStep = (step, status) => {
-  const message = buildStepLog(step, status);
-  console.info(JSON.stringify(message));
+  const stepLog = buildStepLog(step, status);
+  console.info(JSON.stringify(stepLog));
+  void sendStepLog(stepLog);
 };
 
 const logUploadStep = (status) => {
@@ -170,6 +225,49 @@ const logUploadStep = (status) => {
     return;
   }
   logStep(uploadStep, status);
+};
+
+const updateSummaryStatus = ({ state: statusState, message, error, data, runId }) => {
+  state.summaryStatus = {
+    state: statusState,
+    message: message || "",
+    error: error || "",
+    data: data || null,
+    runId: runId || state.runId,
+  };
+  render();
+};
+
+const fetchSummary = async () => {
+  updateSummaryStatus({ state: "loading", message: "Loading summary…" });
+  try {
+    const response = await fetch(`/api/summary?runId=${state.runId}`, {
+      headers: {
+        "X-Telegram-Init-Data": webApp?.initData || "",
+      },
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const message = payload?.error?.message || "Summary request failed.";
+      updateSummaryStatus({ state: "error", error: message, message });
+      return;
+    }
+
+    const payload = await response.json();
+    updateSummaryStatus({
+      state: "success",
+      message: "Summary ready.",
+      data: payload,
+      runId: state.runId,
+    });
+  } catch (error) {
+    updateSummaryStatus({
+      state: "error",
+      error: error.message || "Summary request failed.",
+      message: "Summary request failed.",
+    });
+  }
 };
 
 const requiredCsvHeaders = ["Well", "OD", "Wavelength", "SampleID"];
@@ -609,7 +707,88 @@ const renderSummary = () => {
     summaryGrid,
   );
 
-  return card;
+  const resultsCard = document.createElement("div");
+  resultsCard.className = "card";
+
+  const resultsHeader = document.createElement("strong");
+  resultsHeader.textContent = "Run summary";
+  resultsCard.appendChild(resultsHeader);
+
+  if (
+    state.summaryStatus.state === "idle" ||
+    state.summaryStatus.runId !== state.runId
+  ) {
+    fetchSummary();
+  }
+
+  const statusText = document.createElement("p");
+  statusText.className = "summaryStatus";
+  statusText.textContent =
+    state.summaryStatus.state === "loading"
+      ? "Loading latest run summary…"
+      : state.summaryStatus.state === "error"
+        ? state.summaryStatus.error || "Summary unavailable."
+        : "Latest run summary loaded.";
+  resultsCard.appendChild(statusText);
+
+  if (state.summaryStatus.data) {
+    const summaryData = state.summaryStatus.data;
+    const details = document.createElement("div");
+    details.className = "summaryGrid summaryGrid--compact";
+    details.append(
+      summaryRow(
+        "Run status",
+        summaryData.status || summaryData.run?.status || "Unknown",
+      ),
+      summaryRow(
+        "Step logs",
+        `${summaryData.counts?.stepLogs || 0} entries`,
+      ),
+      summaryRow(
+        "Attachments",
+        `${summaryData.counts?.attachments || 0} files`,
+      ),
+      summaryRow(
+        "Last update",
+        summaryData.lastUpdatedAt || "No activity yet",
+      ),
+    );
+    resultsCard.appendChild(details);
+
+    const attachments = summaryData.attachments || [];
+    const attachmentBlock = document.createElement("div");
+    attachmentBlock.className = "summaryAttachments";
+    const attachmentTitle = document.createElement("strong");
+    attachmentTitle.textContent = "Attachment links";
+    attachmentBlock.appendChild(attachmentTitle);
+
+    if (attachments.length === 0) {
+      const empty = document.createElement("p");
+      empty.textContent = "No attachments linked yet.";
+      attachmentBlock.appendChild(empty);
+    } else {
+      const list = document.createElement("ul");
+      list.className = "summaryAttachmentList";
+      attachments.forEach((attachment) => {
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = `/${attachment.path}`;
+        link.textContent = attachment.label || attachment.path;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        item.appendChild(link);
+        list.appendChild(item);
+      });
+      attachmentBlock.appendChild(list);
+    }
+
+    resultsCard.appendChild(attachmentBlock);
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.append(card, resultsCard);
+
+  return wrapper;
 };
 
 const createParagraph = (title, text) => {
@@ -709,6 +888,14 @@ const handleNext = () => {
     moveToStep(state.currentStepIndex + 1);
   } else {
     logStep(steps[state.currentStepIndex], "finished");
+    const finishedAt = new Date().toISOString();
+    postJson("/api/runs", {
+      ...buildRunPayload(),
+      status: "completed",
+      finishedAt,
+    }).catch((error) => {
+      console.warn("Failed to finalize run.", error);
+    });
     if (webApp?.HapticFeedback) {
       webApp.HapticFeedback.notificationOccurred("success");
     }
@@ -755,6 +942,7 @@ const initializeApp = async () => {
   } catch (error) {
     console.warn("Failed to load protocol schemas.", error);
   }
+  await sendRunPayload();
   render();
   logStep(steps[state.currentStepIndex], "started");
 };
