@@ -79,15 +79,89 @@ const buildProtocolList = () =>
     };
   });
 
+const initialChecklistSteps = [
+  {
+    id: "samplePreparation",
+    title: "Подготовка образцов",
+    fields: [
+      {
+        id: "operatorName",
+        label: "Ответственный",
+        placeholder: "ФИО исполнителя"
+      }
+    ],
+    confirmationLabel: "Подтверждаю готовность образцов"
+  },
+  {
+    id: "reagentDilution",
+    title: "Разведение реагентов",
+    fields: [
+      {
+        id: "batchNumber",
+        label: "Номер партии реагентов",
+        placeholder: "Например, RN-2024-11"
+      },
+      {
+        id: "dilutionRatio",
+        label: "Коэффициент разведения",
+        placeholder: "Например, 1:200"
+      }
+    ],
+    confirmationLabel: "Проверил правильность разведения"
+  },
+  {
+    id: "plateSetup",
+    title: "Настройка планшета",
+    fields: [
+      {
+        id: "incubationTemperature",
+        label: "Температура инкубации",
+        placeholder: "°C"
+      }
+    ],
+    confirmationLabel: "Планшет подготовлен и подписан"
+  }
+];
+
+const buildChecklistState = () =>
+  initialChecklistSteps.map((step) => ({
+    ...step,
+    values: step.fields.reduce((accumulator, field) => {
+      return { ...accumulator, [field.id]: "" };
+    }, {}),
+    isConfirmed: false,
+    status: "pending"
+  }));
+
+const evaluateChecklistStatus = (step) => {
+  const hasInput = step.fields.some(
+    (field) => step.values[field.id].trim() !== ""
+  );
+  const allFieldsFilled = step.fields.every(
+    (field) => step.values[field.id].trim() !== ""
+  );
+  if (allFieldsFilled && step.isConfirmed) {
+    return "finished";
+  }
+  if (hasInput || step.isConfirmed) {
+    return "started";
+  }
+  return "pending";
+};
+
 const App = () => {
   const [theme, setTheme] = useState("unknown");
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedProtocol, setSelectedProtocol] = useState(null);
+  const [checklistSteps, setChecklistSteps] = useState(buildChecklistState);
   const activeScreen = screens[activeIndex];
   const protocolIndex = screens.findIndex((screen) => screen.id === "protocols");
   const planBuilderIndex = screens.findIndex(
     (screen) => screen.id === "planBuilder"
   );
+  const checklistIndex = screens.findIndex((screen) => screen.id === "checklist");
+  const uploadsIndex = screens.findIndex((screen) => screen.id === "uploads");
+  const summaryIndex = screens.findIndex((screen) => screen.id === "summary");
 
   const protocols = useMemo(() => {
     const list = buildProtocolList();
@@ -142,14 +216,42 @@ const App = () => {
     }
 
     const handleNext = () => {
-      if (activeIndex === protocolIndex && !selectedProtocol) {
+      if (activeIndex === protocolIndex) {
+        if (!selectedProtocol) {
+          webApp.HapticFeedback?.impactOccurred("light");
+          return;
+        }
+        setActiveIndex(planBuilderIndex);
         webApp.HapticFeedback?.impactOccurred("light");
         return;
       }
-      setActiveIndex((prevIndex) =>
-        prevIndex < screens.length - 1 ? prevIndex + 1 : 0
-      );
-      webApp.HapticFeedback?.impactOccurred("light");
+      if (activeIndex === planBuilderIndex) {
+        setActiveIndex(checklistIndex);
+        webApp.HapticFeedback?.impactOccurred("light");
+        return;
+      }
+      if (activeIndex === checklistIndex) {
+        const isChecklistComplete = checklistSteps.every(
+          (step) => step.status === "finished"
+        );
+        if (!isChecklistComplete) {
+          webApp.HapticFeedback?.impactOccurred("light");
+          return;
+        }
+        setActiveIndex(uploadsIndex);
+        webApp.HapticFeedback?.impactOccurred("light");
+        return;
+      }
+      if (activeIndex === uploadsIndex) {
+        setActiveIndex(summaryIndex);
+        webApp.HapticFeedback?.impactOccurred("light");
+        return;
+      }
+      if (activeIndex === summaryIndex) {
+        setActiveIndex(protocolIndex);
+        webApp.HapticFeedback?.impactOccurred("light");
+        return;
+      }
     };
 
     const handleBack = () => {
@@ -158,18 +260,31 @@ const App = () => {
     };
 
     const isOnProtocols = activeIndex === protocolIndex;
-    const mainButtonLabel = isOnProtocols
-      ? selectedProtocol
-        ? "Продолжить"
-        : "Выберите протокол"
-      : activeIndex === screens.length - 1
-      ? "Сначала"
-      : "Далее";
+    const isOnChecklist = activeIndex === checklistIndex;
+    const isChecklistComplete = checklistSteps.every(
+      (step) => step.status === "finished"
+    );
+    let mainButtonLabel = "Далее";
+    if (isOnProtocols) {
+      mainButtonLabel = selectedProtocol ? "Продолжить" : "Выберите протокол";
+    } else if (activeIndex === planBuilderIndex) {
+      mainButtonLabel = "Начать эксперимент";
+    } else if (isOnChecklist) {
+      mainButtonLabel = isChecklistComplete
+        ? "К загрузкам"
+        : "Заполните чек-лист";
+    } else if (activeIndex === uploadsIndex) {
+      mainButtonLabel = "К сводке";
+    } else if (activeIndex === summaryIndex) {
+      mainButtonLabel = "Сначала";
+    }
 
     webApp.MainButton.setParams({
       text: mainButtonLabel,
       is_visible: true,
-      is_active: !isOnProtocols || Boolean(selectedProtocol)
+      is_active:
+        (!isOnProtocols || Boolean(selectedProtocol)) &&
+        (!isOnChecklist || isChecklistComplete)
     });
 
     if (activeIndex === 0) {
@@ -185,7 +300,16 @@ const App = () => {
       webApp.MainButton.offClick(handleNext);
       webApp.BackButton.offClick(handleBack);
     };
-  }, [activeIndex, protocolIndex, selectedProtocol]);
+  }, [
+    activeIndex,
+    checklistIndex,
+    checklistSteps,
+    planBuilderIndex,
+    protocolIndex,
+    selectedProtocol,
+    summaryIndex,
+    uploadsIndex
+  ]);
 
   const handleSelectScreen = (index) => {
     setActiveIndex(index);
@@ -203,6 +327,68 @@ const App = () => {
     const webApp = getWebApp();
     webApp?.HapticFeedback.selectionChanged();
     logExperimentStep(`ProtocolSelect:${protocol.name}`, "finished");
+  };
+
+  const handleStartExperiment = () => {
+    logExperimentStep("StartExperiment", "started");
+    setActiveIndex(checklistIndex);
+    const webApp = getWebApp();
+    webApp?.HapticFeedback.impactOccurred("light");
+    logExperimentStep("StartExperiment", "finished");
+  };
+
+  const updateChecklistStep = (stepId, updater) => {
+    setChecklistSteps((prevSteps) =>
+      prevSteps.map((step) => {
+        if (step.id !== stepId) {
+          return step;
+        }
+        const nextStep = updater(step);
+        const nextStatus = evaluateChecklistStatus(nextStep);
+        if (nextStatus !== step.status) {
+          const logStatus =
+            step.status === "finished" && nextStatus !== "finished"
+              ? "failed"
+              : nextStatus;
+          if (logStatus !== "pending") {
+            logExperimentStep(`Checklist:${step.title}`, logStatus);
+          }
+        }
+        return { ...nextStep, status: nextStatus };
+      })
+    );
+  };
+
+  const handleChecklistFieldChange = (stepId, fieldId, value) => {
+    updateChecklistStep(stepId, (step) => ({
+      ...step,
+      values: { ...step.values, [fieldId]: value }
+    }));
+  };
+
+  const handleChecklistConfirmation = (stepId, isConfirmed) => {
+    updateChecklistStep(stepId, (step) => ({
+      ...step,
+      isConfirmed
+    }));
+  };
+
+  const handleGoToUploads = () => {
+    const isChecklistComplete = checklistSteps.every(
+      (step) => step.status === "finished"
+    );
+    if (!isChecklistComplete) {
+      return;
+    }
+    setActiveIndex(uploadsIndex);
+    const webApp = getWebApp();
+    webApp?.HapticFeedback.impactOccurred("light");
+  };
+
+  const handleGoToSummary = () => {
+    setActiveIndex(summaryIndex);
+    const webApp = getWebApp();
+    webApp?.HapticFeedback.impactOccurred("light");
   };
 
   return (
@@ -276,10 +462,117 @@ const App = () => {
               <p className="app__hint">
                 Версия схемы: {selectedProtocol.schemaVersion}
               </p>
+              <button
+                type="button"
+                className="app__action-button"
+                onClick={handleStartExperiment}
+              >
+                Начать эксперимент
+              </button>
             </div>
           ) : (
             <p className="app__value">Протокол еще не выбран.</p>
           )}
+        </section>
+      )}
+      {activeScreen.id === "checklist" && (
+        <section className="app__card">
+          <p className="app__label">Checklist эксперимента</p>
+          <div className="app__checklist">
+            {checklistSteps.map((step, index) => {
+              const isComplete = step.status === "finished";
+              return (
+                <div
+                  key={step.id}
+                  className={`app__checklist-step${
+                    isComplete ? " is-complete" : ""
+                  }`}
+                >
+                  <div className="app__checklist-header">
+                    <div>
+                      <p className="app__checklist-index">Шаг {index + 1}</p>
+                      <h3 className="app__checklist-title">{step.title}</h3>
+                    </div>
+                    <span className="app__checklist-status">
+                      {isComplete ? "Готово" : "Ожидает"}
+                    </span>
+                  </div>
+                  <div className="app__checklist-fields">
+                    {step.fields.map((field) => (
+                      <label
+                        key={field.id}
+                        className="app__field"
+                        htmlFor={`${step.id}-${field.id}`}
+                      >
+                        <span className="app__field-label">{field.label}</span>
+                        <input
+                          id={`${step.id}-${field.id}`}
+                          className="app__input"
+                          type="text"
+                          placeholder={field.placeholder}
+                          value={step.values[field.id]}
+                          onChange={(event) =>
+                            handleChecklistFieldChange(
+                              step.id,
+                              field.id,
+                              event.target.value
+                            )
+                          }
+                          required
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <label className="app__checkbox">
+                    <input
+                      type="checkbox"
+                      checked={step.isConfirmed}
+                      onChange={(event) =>
+                        handleChecklistConfirmation(step.id, event.target.checked)
+                      }
+                      required
+                    />
+                    <span>{step.confirmationLabel}</span>
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="app__action-button"
+            onClick={handleGoToUploads}
+            disabled={!checklistSteps.every((step) => step.status === "finished")}
+          >
+            Перейти к загрузкам
+          </button>
+          <p className="app__hint">
+            Заполните все поля и подтвердите шаги, чтобы перейти к загрузке.
+          </p>
+        </section>
+      )}
+      {activeScreen.id === "uploads" && (
+        <section className="app__card">
+          <p className="app__label">Загрузка данных</p>
+          <p className="app__value">Добавьте файлы измерений и фото планшета.</p>
+          <button
+            type="button"
+            className="app__action-button"
+            onClick={handleGoToSummary}
+          >
+            Перейти к сводке
+          </button>
+          <p className="app__hint">
+            После загрузки данные будут доступны в итоговой сводке.
+          </p>
+        </section>
+      )}
+      {activeScreen.id === "summary" && (
+        <section className="app__card">
+          <p className="app__label">Summary</p>
+          <p className="app__value">
+            Здесь появится итоговая сводка эксперимента и журнал действий.
+          </p>
         </section>
       )}
       <section className="app__card">

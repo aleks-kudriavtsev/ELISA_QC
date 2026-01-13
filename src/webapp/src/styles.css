@@ -154,3 +154,108 @@ body {
   display: grid;
   gap: 8px;
 }
+
+.app__action-button {
+  border: none;
+  border-radius: 14px;
+  padding: 12px 18px;
+  background: var(--tg-theme-button-color, #2f80ed);
+  color: var(--tg-theme-button-text-color, #ffffff);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.app__action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.app__checklist {
+  display: grid;
+  gap: 16px;
+}
+
+.app__checklist-step {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid
+    color-mix(in srgb, var(--tg-theme-hint-color, #667085) 30%, transparent);
+  background: var(--tg-theme-bg-color, #f6f7fb);
+  display: grid;
+  gap: 12px;
+}
+
+.app__checklist-step.is-complete {
+  border-color: var(--tg-theme-button-color, #2f80ed);
+  background: color-mix(
+    in srgb,
+    var(--tg-theme-button-color, #2f80ed) 15%,
+    var(--tg-theme-secondary-bg-color, #ffffff)
+  );
+}
+
+.app__checklist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app__checklist-index {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tg-theme-hint-color, #667085);
+}
+
+.app__checklist-title {
+  margin: 4px 0 0;
+  font-size: 18px;
+}
+
+.app__checklist-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tg-theme-hint-color, #667085);
+}
+
+.app__checklist-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.app__field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.app__field-label {
+  color: var(--tg-theme-hint-color, #667085);
+}
+
+.app__input {
+  border-radius: 12px;
+  border: 1px solid
+    color-mix(in srgb, var(--tg-theme-hint-color, #667085) 30%, transparent);
+  padding: 10px 12px;
+  background: var(--tg-theme-secondary-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #1f2328);
+  font-size: 14px;
+}
+
+.app__input:focus {
+  outline: 2px solid
+    color-mix(in srgb, var(--tg-theme-button-color, #2f80ed) 40%, transparent);
+}
+
+.app__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--tg-theme-text-color, #1f2328);
+}
