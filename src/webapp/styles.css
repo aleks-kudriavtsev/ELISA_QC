@@ -221,6 +221,23 @@ select {
   justify-content: space-between;
 }
 
+.expectedStep {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.expectedStepTitle {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.expectedFieldList {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--tg-theme-hint-color, #6b7280);
+}
+
 @media (max-width: 900px) {
   body {
     padding: 16px;
