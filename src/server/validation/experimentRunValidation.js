@@ -19,6 +19,12 @@ const validateExperimentRun = (payload, planPayload) => {
   if (payload.status && !allowedRunStatuses.has(payload.status)) {
     errors.push('ExperimentRun.status must be running, completed, or failed');
   }
+  if (payload.designId && !payload.runSeriesId) {
+    errors.push('ExperimentRun.runSeriesId is required when designId is provided');
+  }
+  if (payload.designId && !payload.designRowId) {
+    errors.push('ExperimentRun.designRowId is required when designId is provided');
+  }
   if (planPayload) {
     errors.push(...validateRunAgainstProtocol(payload, planPayload));
   }

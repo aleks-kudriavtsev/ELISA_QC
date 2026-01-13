@@ -23,6 +23,7 @@ const {
   createSummaryHandler,
   createSummaryStore,
 } = require('./summary');
+const { createDesignHandler } = require('./designs');
 
 const createApiServer = ({ logger = console } = {}) => {
   const store = createSummaryStore();
@@ -30,6 +31,7 @@ const createApiServer = ({ logger = console } = {}) => {
   const { handleRun } = createRunHandler({ store });
   const { handleStepLog } = createStepLogHandler({ store, logger });
   const { handleSummary } = createSummaryHandler({ store });
+  const { handleDesign } = createDesignHandler({ store });
 
   const server = http.createServer((request, response) => {
     applyCorsHeaders(response);
@@ -54,6 +56,10 @@ const createApiServer = ({ logger = console } = {}) => {
 
     if (pathname === '/api/runs') {
       return handleRun(request, response);
+    }
+
+    if (pathname === '/api/designs') {
+      return handleDesign(request, response);
     }
 
     if (pathname.startsWith('/api/runs/') && pathname.endsWith('/steps')) {
