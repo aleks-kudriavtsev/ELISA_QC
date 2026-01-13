@@ -86,6 +86,20 @@ npm run build
 npm run preview
 ```
 
+### Проверка UI
+
+1. Запустить фронтенд локально:
+
+```bash
+cd src/webapp
+npm install
+npm run dev
+```
+
+2. Открыть `http://localhost:5173`.
+3. Убедиться, что отображаются экраны Protocols, PlanBuilder, Checklist, Uploads, Summary.
+4. Переключиться между экранами через меню и Telegram MainButton/BackButton.
+
 ## Backend API (Node.js)
 
 Минимальный сервер находится в `src/server`.

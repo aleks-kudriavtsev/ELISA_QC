@@ -47,7 +47,8 @@ body {
   padding: 20px;
   border-radius: 16px;
   background: var(--tg-theme-secondary-bg-color, #ffffff);
-  border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color, #667085) 30%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--tg-theme-hint-color, #667085) 30%, transparent);
   display: grid;
   gap: 12px;
 }
@@ -68,4 +69,49 @@ body {
   margin: 0;
   font-size: 14px;
   color: var(--tg-theme-hint-color, #667085);
+}
+
+.app__nav {
+  display: grid;
+  gap: 12px;
+}
+
+.app__nav-button {
+  width: 100%;
+  border-radius: 14px;
+  padding: 12px 16px;
+  border: 1px solid
+    color-mix(in srgb, var(--tg-theme-hint-color, #667085) 30%, transparent);
+  background: var(--tg-theme-bg-color, #f6f7fb);
+  color: var(--tg-theme-text-color, #1f2328);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.app__nav-button.is-active {
+  border-color: var(--tg-theme-button-color, #2f80ed);
+  background: color-mix(
+    in srgb,
+    var(--tg-theme-button-color, #2f80ed) 18%,
+    var(--tg-theme-secondary-bg-color, #ffffff)
+  );
+}
+
+.app__nav-title {
+  font-weight: 600;
+}
+
+.app__nav-status {
+  font-size: 12px;
+  color: var(--tg-theme-hint-color, #667085);
+}
+
+.app__screen-title {
+  margin: 0;
+  font-size: 22px;
+  color: var(--tg-theme-text-color, #1f2328);
 }
