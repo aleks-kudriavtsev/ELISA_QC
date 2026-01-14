@@ -19,7 +19,7 @@
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
       "description": "Semantic version of the protocol template schema.",
-      "default": "1.2.0"
+      "default": "1.3.0"
     },
     "protocolId": {
       "type": "string",
@@ -87,7 +87,7 @@
     "steps": {
       "type": "array",
       "minItems": 10,
-      "maxItems": 10,
+      "maxItems": 11,
       "prefixItems": [
         {
           "type": "object",
@@ -311,6 +311,68 @@
           "type": "object",
           "required": ["id", "name", "stepType", "expectedFields"],
           "properties": {
+            "id": { "const": "competitive-coating-assessment" },
+            "name": { "const": "Оценка сорбции/покрытия" },
+            "stepType": { "const": "coatingAssessment" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 5,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "odControl" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "odControlMin" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "odControlMax" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "temperatureC" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "timeMin" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "fields": [
+              {
+                "id": "odControl",
+                "label": "OD-контроль",
+                "placeholder": "Например, 0.85",
+                "unit": "OD",
+                "dataType": "number"
+              },
+              {
+                "id": "odControlMin",
+                "label": "Минимум OD-контроля",
+                "placeholder": "Например, 0.60",
+                "unit": "OD",
+                "dataType": "number"
+              },
+              {
+                "id": "odControlMax",
+                "label": "Максимум OD-контроля",
+                "placeholder": "Например, 1.10",
+                "unit": "OD",
+                "dataType": "number"
+              },
+              {
+                "id": "temperatureC",
+                "label": "Температура инкубации",
+                "placeholder": "Например, 25",
+                "unit": "°C",
+                "dataType": "number"
+              },
+              {
+                "id": "timeMin",
+                "label": "Время инкубации",
+                "placeholder": "Например, 60",
+                "unit": "мин",
+                "dataType": "number"
+              }
+            ],
+            "confirmationLabel": "Сорбция/покрытие оценены"
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
             "id": { "const": "competitive-blocking" },
             "name": { "const": "Blocking" },
             "stepType": { "const": "blocking" },
@@ -428,6 +490,114 @@
     }
   },
   "versionHistory": [
+    {
+      "version": "1.3.0",
+      "releasedAt": "2024-12-01T00:00:00Z",
+      "summary": "Added sorption/coating assessment with control OD ranges.",
+      "steps": [
+        {
+          "stepId": "competitive-buffer-preparation",
+          "stepName": "Buffer preparation",
+          "expectedFieldIds": [
+            "composition",
+            "preparationDate",
+            "expirationDate",
+            "lotNumber"
+          ]
+        },
+        {
+          "stepId": "competitive-ph-check",
+          "stepName": "pH verification",
+          "expectedFieldIds": ["ph"]
+        },
+        {
+          "stepId": "competitive-storage-check",
+          "stepName": "Lot & storage conditions",
+          "expectedFieldIds": ["lotNumber", "storageConditions"]
+        },
+        {
+          "stepId": "competitive-concentration-measurement",
+          "stepName": "Измерение концентрации",
+          "expectedFieldIds": [
+            "concentrationMethod",
+            "concentrationValue",
+            "measurementDate",
+            "measurementOperator"
+          ]
+        },
+        {
+          "stepId": "competitive-coating",
+          "stepName": "Coating",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "competitive-coating-assessment",
+          "stepName": "Оценка сорбции/покрытия",
+          "expectedFieldIds": [
+            "odControl",
+            "odControlMin",
+            "odControlMax",
+            "temperatureC",
+            "timeMin"
+          ]
+        },
+        {
+          "stepId": "competitive-blocking",
+          "stepName": "Blocking",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "competitive-sample-incubation",
+          "stepName": "Incubation (Sample/Antigen)",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "competitive-wash-1",
+          "stepName": "Wash 1",
+          "expectedFieldIds": ["timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "competitive-detection-incubation",
+          "stepName": "Incubation (Detection Antibody)",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "competitive-wash-2",
+          "stepName": "Wash 2",
+          "expectedFieldIds": ["timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "competitive-substrate",
+          "stepName": "Substrate",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "competitive-stop",
+          "stepName": "Stop Reaction",
+          "expectedFieldIds": ["volumeUl"]
+        },
+        {
+          "stepId": "competitive-read",
+          "stepName": "Read",
+          "expectedFieldIds": ["od"]
+        }
+      ]
+    },
     {
       "version": "1.2.0",
       "releasedAt": "2024-09-15T00:00:00Z",
@@ -672,6 +842,9 @@
             "timeMin",
             "volumeUl",
             "concentrationUgMl",
+            "odControl",
+            "odControlMin",
+            "odControlMax",
             "od"
           ]
         },
