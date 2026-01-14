@@ -88,6 +88,63 @@ const buildProtocolList = () =>
 
 const initialChecklistSteps = [
   {
+    id: "bufferPreparation",
+    title: "Подготовка буферов",
+    fields: [
+      {
+        id: "composition",
+        label: "Состав буфера",
+        placeholder: "Компоненты и концентрации"
+      },
+      {
+        id: "preparationDate",
+        label: "Дата приготовления",
+        placeholder: "YYYY-MM-DD"
+      },
+      {
+        id: "expirationDate",
+        label: "Срок годности",
+        placeholder: "YYYY-MM-DD"
+      },
+      {
+        id: "lotNumber",
+        label: "Партия",
+        placeholder: "Например, BUF-2024-05"
+      }
+    ],
+    confirmationLabel: "Буферы подготовлены"
+  },
+  {
+    id: "phCheck",
+    title: "Проверка pH",
+    fields: [
+      {
+        id: "ph",
+        label: "pH",
+        placeholder: "Например, 7.4",
+        dataType: "number"
+      }
+    ],
+    confirmationLabel: "pH подтвержден"
+  },
+  {
+    id: "storageCheck",
+    title: "Партии и условия хранения",
+    fields: [
+      {
+        id: "lotNumber",
+        label: "Партия",
+        placeholder: "Например, BUF-2024-05"
+      },
+      {
+        id: "storageConditions",
+        label: "Условия хранения",
+        placeholder: "Например, 2-8°C, темнота"
+      }
+    ],
+    confirmationLabel: "Партии и условия хранения проверены"
+  },
+  {
     id: "samplePreparation",
     title: "Подготовка образцов",
     fields: [
