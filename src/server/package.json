@@ -7,5 +7,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
   }
 }

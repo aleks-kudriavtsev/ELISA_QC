@@ -1,4 +1,4 @@
-const requiredCsvHeaders = ['Well', 'OD', 'Wavelength', 'SampleID'];
+const requiredCsvHeaders = ['SampleID', 'OD'];
 
 const normalizeHeader = (value) => value.replace(/^\uFEFF/, '').trim();
 
