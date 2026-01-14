@@ -44,6 +44,12 @@ const protocolSources = [
 ];
 
 const fieldLabelMap = {
+  ph: "pH",
+  composition: "Buffer composition",
+  preparationDate: "Preparation date",
+  expirationDate: "Expiration date",
+  lotNumber: "Lot number",
+  storageConditions: "Storage conditions",
   temperatureC: "Temperature (°C)",
   timeMin: "Time (min)",
   volumeUl: "Volume (µL)",
@@ -57,6 +63,9 @@ const state = {
   protocols: {},
   planItems: ["Prepare plate map", "Calibrate reader"],
   checklist: {
+    "Prepare buffers": false,
+    "Verify buffer pH": false,
+    "Record lots and storage conditions": false,
     "Calibrate pipettes": false,
     "Prepare controls": false,
     "Verify incubation times": false,

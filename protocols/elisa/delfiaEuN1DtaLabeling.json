@@ -19,7 +19,7 @@
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
       "description": "Semantic version of the protocol template schema.",
-      "default": "1.0.0"
+      "default": "1.1.0"
     },
     "protocolId": {
       "type": "string",
@@ -59,11 +59,25 @@
       "description": "Buffers used in reconstitution, labeling, and purification.",
       "items": {
         "type": "object",
-        "required": ["id", "name", "purpose"],
+        "required": [
+          "id",
+          "name",
+          "purpose",
+          "ph",
+          "composition",
+          "preparationDate",
+          "expirationDate",
+          "lotNumber"
+        ],
         "properties": {
           "id": { "type": "string" },
           "name": { "type": "string" },
           "purpose": { "type": "string" },
+          "ph": { "type": "number" },
+          "composition": { "type": "string" },
+          "preparationDate": { "type": "string", "format": "date" },
+          "expirationDate": { "type": "string", "format": "date" },
+          "lotNumber": { "type": "string" },
           "notes": { "type": "string" }
         },
         "additionalProperties": false
@@ -72,9 +86,129 @@
     },
     "steps": {
       "type": "array",
-      "minItems": 10,
-      "maxItems": 10,
+      "minItems": 13,
+      "maxItems": 13,
       "prefixItems": [
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-buffer-preparation" },
+            "name": { "const": "Подготовка буферов" },
+            "stepType": { "const": "bufferPreparation" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "composition" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "preparationDate" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "expirationDate" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "lotNumber" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Буферы подготовлены и промаркированы",
+            "fields": [
+              {
+                "id": "composition",
+                "label": "Состав буфера",
+                "placeholder": "Компоненты и концентрации",
+                "dataType": "string"
+              },
+              {
+                "id": "preparationDate",
+                "label": "Дата приготовления",
+                "placeholder": "YYYY-MM-DD",
+                "dataType": "string"
+              },
+              {
+                "id": "expirationDate",
+                "label": "Срок годности",
+                "placeholder": "YYYY-MM-DD",
+                "dataType": "string"
+              },
+              {
+                "id": "lotNumber",
+                "label": "Партия",
+                "placeholder": "Например, BUF-2024-05",
+                "dataType": "string"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-ph-check" },
+            "name": { "const": "Проверка pH" },
+            "stepType": { "const": "phCheck" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "ph" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "pH подтвержден",
+            "fields": [
+              {
+                "id": "ph",
+                "label": "pH",
+                "placeholder": "Например, 7.4",
+                "dataType": "number"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-lot-storage-check" },
+            "name": { "const": "Партии и условия хранения" },
+            "stepType": { "const": "storageCheck" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "lotNumber" } }, "required": ["fieldId"] } },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "storageConditions" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Партии и условия хранения проверены",
+            "fields": [
+              {
+                "id": "lotNumber",
+                "label": "Партия",
+                "placeholder": "Например, EU-2024-05",
+                "dataType": "string"
+              },
+              {
+                "id": "storageConditions",
+                "label": "Условия хранения",
+                "placeholder": "Например, -20°C, защита от света",
+                "dataType": "string"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
         {
           "type": "object",
           "required": ["id", "name", "stepType", "expectedFields"],
@@ -573,6 +707,12 @@
         "fieldId": {
           "type": "string",
           "enum": [
+            "ph",
+            "composition",
+            "preparationDate",
+            "expirationDate",
+            "lotNumber",
+            "storageConditions",
             "chelateStorageTempC",
             "standardStorageTempC",
             "chelateLotNumber",
