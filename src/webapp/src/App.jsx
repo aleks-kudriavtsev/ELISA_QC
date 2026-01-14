@@ -86,6 +86,44 @@ const buildProtocolList = () =>
     };
   });
 
+const parseNumericValue = (value) => {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const buildCoatingAssessment = (steps) => {
+  const coatingStep = steps.find((step) =>
+    step.fields.some((field) => field.id === "odControl")
+  );
+  if (!coatingStep) {
+    return null;
+  }
+
+  const odControl = parseNumericValue(coatingStep.values.odControl);
+  const rangeMin = parseNumericValue(coatingStep.values.odControlMin);
+  const rangeMax = parseNumericValue(coatingStep.values.odControlMax);
+  const temperatureC = parseNumericValue(coatingStep.values.temperatureC);
+  const timeMin = parseNumericValue(coatingStep.values.timeMin);
+  const hasRange = rangeMin !== null && rangeMax !== null;
+  const hasOd = odControl !== null;
+  let status = "unknown";
+
+  if (hasRange && hasOd) {
+    status =
+      odControl >= rangeMin && odControl <= rangeMax ? "within" : "out";
+  }
+
+  return {
+    title: coatingStep.title,
+    odControl,
+    rangeMin,
+    rangeMax,
+    temperatureC,
+    timeMin,
+    status
+  };
+};
+
 const initialChecklistSteps = [
   {
     id: "bufferPreparation",
@@ -227,6 +265,7 @@ const buildProtocolChecklistSteps = (protocol) => {
       unit: field.unit ?? "",
       dataType: field.dataType ?? "string",
       minValue: field.minValue,
+      maxValue: field.maxValue,
       warningMessage: field.warningMessage ?? ""
     }));
 
@@ -357,6 +396,10 @@ const App = () => {
   const protocolChecklistSteps = useMemo(
     () => buildProtocolChecklistSteps(selectedProtocol),
     [selectedProtocol]
+  );
+  const coatingAssessment = useMemo(
+    () => buildCoatingAssessment(checklistSteps),
+    [checklistSteps]
   );
 
   const protocols = useMemo(() => {
@@ -687,6 +730,29 @@ const App = () => {
     const webApp = getWebApp();
     webApp?.HapticFeedback.impactOccurred("light");
   };
+
+  const coatingStatusLabel = !coatingAssessment
+    ? "Нет данных"
+    : coatingAssessment.status === "within"
+      ? "В пределах"
+      : coatingAssessment.status === "out"
+        ? "Вне диапазона"
+        : "Нет данных";
+  const coatingRangeText = !coatingAssessment
+    ? "Диапазон не задан"
+    : coatingAssessment.rangeMin !== null && coatingAssessment.rangeMax !== null
+      ? `${coatingAssessment.rangeMin}–${coatingAssessment.rangeMax} OD`
+      : "Диапазон не задан";
+  const coatingOdText = !coatingAssessment
+    ? "OD-контроль не задан"
+    : coatingAssessment.odControl !== null
+      ? `${coatingAssessment.odControl} OD`
+      : "OD-контроль не задан";
+  const coatingIncubationText = !coatingAssessment
+    ? "Инкубация не заполнена"
+    : coatingAssessment.temperatureC !== null && coatingAssessment.timeMin !== null
+      ? `${coatingAssessment.temperatureC} °C · ${coatingAssessment.timeMin} мин`
+      : "Инкубация не заполнена";
 
   return (
     <main className="app">
@@ -1031,17 +1097,24 @@ const App = () => {
                       const fieldValue = step.values[field.id];
                       const numericValue = Number.parseFloat(fieldValue);
                       const hasMinValue = typeof field.minValue === "number";
-                      const showWarning =
-                        hasMinValue &&
+                      const hasMaxValue = typeof field.maxValue === "number";
+                      const hasNumericValue =
                         fieldValue.trim() !== "" &&
-                        Number.isFinite(numericValue) &&
-                        numericValue < field.minValue;
-                      const warningText = showWarning
+                        Number.isFinite(numericValue);
+                      const isBelowMin =
+                        hasMinValue && hasNumericValue && numericValue < field.minValue;
+                      const isAboveMax =
+                        hasMaxValue && hasNumericValue && numericValue > field.maxValue;
+                      const warningText = isBelowMin
                         ? field.warningMessage ||
                           `Минимум ${field.minValue}${
                             field.unit ? ` ${field.unit}` : ""
                           }.`
-                        : null;
+                        : isAboveMax
+                          ? `Максимум ${field.maxValue}${
+                              field.unit ? ` ${field.unit}` : ""
+                            }.`
+                          : null;
 
                       return (
                         <label
@@ -1063,6 +1136,11 @@ const App = () => {
                             min={
                               field.dataType === "number" && hasMinValue
                                 ? field.minValue
+                                : undefined
+                            }
+                            max={
+                              field.dataType === "number" && hasMaxValue
+                                ? field.maxValue
                                 : undefined
                             }
                             value={fieldValue}
@@ -1134,6 +1212,17 @@ const App = () => {
           <p className="app__value">
             Здесь появится итоговая сводка эксперимента и журнал действий.
           </p>
+          <div className="app__consumption-log">
+            <p className="app__label">
+              {coatingAssessment?.title ?? "Оценка сорбции/покрытия"}
+            </p>
+            <ul className="app__log-list">
+              <li>OD-контроль: {coatingOdText}</li>
+              <li>Диапазон: {coatingRangeText}</li>
+              <li>Статус: {coatingStatusLabel}</li>
+              <li>Инкубация: {coatingIncubationText}</li>
+            </ul>
+          </div>
           <div className="app__consumption-log">
             <p className="app__label">Лог расходников в ходе run</p>
             {consumptionLogs.length === 0 ? (

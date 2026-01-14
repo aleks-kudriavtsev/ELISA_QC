@@ -54,6 +54,9 @@ const fieldLabelMap = {
   timeMin: "Time (min)",
   volumeUl: "Volume (µL)",
   concentrationUgMl: "Concentration (µg/mL)",
+  odControl: "Control OD",
+  odControlMin: "Control OD min",
+  odControlMax: "Control OD max",
   od: "Optical density (OD)",
 };
 
