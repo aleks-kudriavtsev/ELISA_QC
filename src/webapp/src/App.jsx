@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const protocolModules = import.meta.glob("../../../protocols/elisa/*.json", {
   eager: true
@@ -14,6 +14,11 @@ const screens = [
     id: "planBuilder",
     title: "PlanBuilder",
     status: "Черновик плана ожидает подтверждения."
+  },
+  {
+    id: "consumables",
+    title: "Consumables",
+    status: "Справочник расходников и текущих остатков."
   },
   {
     id: "checklist",
@@ -159,19 +164,102 @@ const evaluateChecklistStatus = (step) => {
   return "pending";
 };
 
+const initialConsumables = [
+  {
+    id: "consumable-1",
+    name: "96-луночные планшеты",
+    unit: "шт",
+    onHand: 12,
+    reorderThreshold: 4,
+    plannedUse: 2,
+    used: 0
+  },
+  {
+    id: "consumable-2",
+    name: "Пипеточные наконечники",
+    unit: "шт",
+    onHand: 480,
+    reorderThreshold: 200,
+    plannedUse: 96,
+    used: 0
+  },
+  {
+    id: "consumable-3",
+    name: "Промывочный буфер",
+    unit: "мл",
+    onHand: 250,
+    reorderThreshold: 80,
+    plannedUse: 120,
+    used: 0
+  }
+];
+
+const buildConsumableWarnings = (consumables) =>
+  consumables.flatMap((consumable) => {
+    const warnings = [];
+    if (consumable.plannedUse > consumable.onHand) {
+      warnings.push({
+        id: `${consumable.id}-shortage`,
+        type: "shortage",
+        message: `${consumable.name}: нужно ${consumable.plannedUse} ${consumable.unit}, доступно ${consumable.onHand} ${consumable.unit}.`
+      });
+    }
+    if (
+      consumable.reorderThreshold > 0 &&
+      consumable.onHand <= consumable.reorderThreshold
+    ) {
+      warnings.push({
+        id: `${consumable.id}-low`,
+        type: "low",
+        message: `${consumable.name}: остаток ${consumable.onHand} ${consumable.unit} близок к порогу пополнения (${consumable.reorderThreshold} ${consumable.unit}).`
+      });
+    }
+    return warnings;
+  });
+
+const formatConsumableStatus = (consumable) => {
+  if (consumable.plannedUse > consumable.onHand) {
+    return { label: "Нехватка", tone: "alert" };
+  }
+  if (
+    consumable.reorderThreshold > 0 &&
+    consumable.onHand <= consumable.reorderThreshold
+  ) {
+    return { label: "Низкий остаток", tone: "warning" };
+  }
+  return { label: "Достаточно", tone: "ok" };
+};
+
 const App = () => {
   const [theme, setTheme] = useState("unknown");
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedProtocol, setSelectedProtocol] = useState(null);
   const [checklistSteps, setChecklistSteps] = useState(buildChecklistState);
+  const [consumables, setConsumables] = useState(() => initialConsumables);
+  const [consumptionLogs, setConsumptionLogs] = useState([]);
+  const [consumableForm, setConsumableForm] = useState({
+    name: "",
+    unit: "шт",
+    onHand: "",
+    reorderThreshold: "",
+    plannedUse: ""
+  });
+  const consumableSequence = useRef(initialConsumables.length);
   const activeScreen = screens[activeIndex];
   const protocolIndex = screens.findIndex((screen) => screen.id === "protocols");
   const planBuilderIndex = screens.findIndex(
     (screen) => screen.id === "planBuilder"
   );
+  const consumablesIndex = screens.findIndex(
+    (screen) => screen.id === "consumables"
+  );
   const checklistIndex = screens.findIndex((screen) => screen.id === "checklist");
   const uploadsIndex = screens.findIndex((screen) => screen.id === "uploads");
   const summaryIndex = screens.findIndex((screen) => screen.id === "summary");
+  const consumableWarnings = useMemo(
+    () => buildConsumableWarnings(consumables),
+    [consumables]
+  );
 
   const protocols = useMemo(() => {
     const list = buildProtocolList();
@@ -236,8 +324,17 @@ const App = () => {
         return;
       }
       if (activeIndex === planBuilderIndex) {
-        setActiveIndex(checklistIndex);
+        setActiveIndex(consumablesIndex);
         webApp.HapticFeedback?.impactOccurred("light");
+        return;
+      }
+      if (activeIndex === consumablesIndex) {
+        setActiveIndex(checklistIndex);
+        if (consumableWarnings.length > 0) {
+          webApp.HapticFeedback?.notificationOccurred("warning");
+        } else {
+          webApp.HapticFeedback?.impactOccurred("light");
+        }
         return;
       }
       if (activeIndex === checklistIndex) {
@@ -270,6 +367,7 @@ const App = () => {
     };
 
     const isOnProtocols = activeIndex === protocolIndex;
+    const isOnConsumables = activeIndex === consumablesIndex;
     const isOnChecklist = activeIndex === checklistIndex;
     const isChecklistComplete = checklistSteps.every(
       (step) => step.status === "finished"
@@ -278,7 +376,10 @@ const App = () => {
     if (isOnProtocols) {
       mainButtonLabel = selectedProtocol ? "Продолжить" : "Выберите протокол";
     } else if (activeIndex === planBuilderIndex) {
-      mainButtonLabel = "Начать эксперимент";
+      mainButtonLabel = "К расходникам";
+    } else if (isOnConsumables) {
+      mainButtonLabel =
+        consumableWarnings.length > 0 ? "Проверьте остатки" : "К чек-листу";
     } else if (isOnChecklist) {
       mainButtonLabel = isChecklistComplete
         ? "К загрузкам"
@@ -314,6 +415,8 @@ const App = () => {
     activeIndex,
     checklistIndex,
     checklistSteps,
+    consumablesIndex,
+    consumableWarnings.length,
     planBuilderIndex,
     protocolIndex,
     selectedProtocol,
@@ -341,7 +444,7 @@ const App = () => {
 
   const handleStartExperiment = () => {
     logExperimentStep("StartExperiment", "started");
-    setActiveIndex(checklistIndex);
+    setActiveIndex(consumablesIndex);
     const webApp = getWebApp();
     webApp?.HapticFeedback.impactOccurred("light");
     logExperimentStep("StartExperiment", "finished");
@@ -393,6 +496,84 @@ const App = () => {
     setActiveIndex(uploadsIndex);
     const webApp = getWebApp();
     webApp?.HapticFeedback.impactOccurred("light");
+  };
+
+  const handleConsumableFormChange = (field, value) => {
+    setConsumableForm((prevForm) => ({ ...prevForm, [field]: value }));
+  };
+
+  const handleAddConsumable = () => {
+    if (!consumableForm.name.trim()) {
+      return;
+    }
+    consumableSequence.current += 1;
+    const nextConsumable = {
+      id: `consumable-${consumableSequence.current}`,
+      name: consumableForm.name.trim(),
+      unit: consumableForm.unit.trim() || "шт",
+      onHand: Number.parseFloat(consumableForm.onHand) || 0,
+      reorderThreshold: Number.parseFloat(consumableForm.reorderThreshold) || 0,
+      plannedUse: Number.parseFloat(consumableForm.plannedUse) || 0,
+      used: 0
+    };
+    setConsumables((prevConsumables) => [...prevConsumables, nextConsumable]);
+    logExperimentStep(`Consumable:Add:${nextConsumable.name}`, "finished");
+    setConsumableForm({
+      name: "",
+      unit: "шт",
+      onHand: "",
+      reorderThreshold: "",
+      plannedUse: ""
+    });
+  };
+
+  const handleConsumableFieldChange = (consumableId, field, value) => {
+    setConsumables((prevConsumables) =>
+      prevConsumables.map((consumable) => {
+        if (consumable.id !== consumableId) {
+          return consumable;
+        }
+        return {
+          ...consumable,
+          [field]:
+            field === "name" || field === "unit"
+              ? value
+              : Math.max(0, Number.parseFloat(value) || 0)
+        };
+      })
+    );
+  };
+
+  const handleConsumableUsageChange = (consumableId, value) => {
+    const timestamp = new Date().toISOString();
+    let logEntry = null;
+    let stepName = null;
+    setConsumables((prevConsumables) =>
+      prevConsumables.map((consumable) => {
+        if (consumable.id !== consumableId) {
+          return consumable;
+        }
+        const nextUsed = Math.max(0, Number.parseFloat(value) || 0);
+        const delta = nextUsed - consumable.used;
+        if (delta > 0) {
+          logEntry = {
+            id: `${consumableId}-${timestamp}`,
+            consumableId,
+            name: consumable.name,
+            quantity: delta,
+            unit: consumable.unit,
+            timestamp,
+            status: "logged"
+          };
+          stepName = `Consumable:${consumable.name}`;
+        }
+        return { ...consumable, used: nextUsed };
+      })
+    );
+    if (logEntry) {
+      setConsumptionLogs((prevLogs) => [...prevLogs, logEntry]);
+      logExperimentStep(stepName, "finished");
+    }
   };
 
   const handleGoToSummary = () => {
@@ -477,7 +658,7 @@ const App = () => {
                 className="app__action-button"
                 onClick={handleStartExperiment}
               >
-                Начать эксперимент
+                Перейти к расходникам
               </button>
             </div>
           ) : (
@@ -485,9 +666,215 @@ const App = () => {
           )}
         </section>
       )}
+      {activeScreen.id === "consumables" && (
+        <section className="app__card">
+          <p className="app__label">Справочник расходников</p>
+          <div className="app__consumables">
+            {consumables.map((consumable) => {
+              const status = formatConsumableStatus(consumable);
+              return (
+                <div key={consumable.id} className="app__consumable-card">
+                  <div className="app__consumable-header">
+                    <input
+                      className="app__input app__input--name"
+                      type="text"
+                      value={consumable.name}
+                      onChange={(event) =>
+                        handleConsumableFieldChange(
+                          consumable.id,
+                          "name",
+                          event.target.value
+                        )
+                      }
+                    />
+                    <span
+                      className={`app__badge app__badge--${status.tone}`}
+                    >
+                      {status.label}
+                    </span>
+                  </div>
+                  <div className="app__consumable-grid">
+                    <label className="app__field">
+                      <span className="app__field-label">Остаток</span>
+                      <input
+                        className="app__input"
+                        type="number"
+                        min="0"
+                        value={consumable.onHand}
+                        onChange={(event) =>
+                          handleConsumableFieldChange(
+                            consumable.id,
+                            "onHand",
+                            event.target.value
+                          )
+                        }
+                      />
+                    </label>
+                    <label className="app__field">
+                      <span className="app__field-label">План на run</span>
+                      <input
+                        className="app__input"
+                        type="number"
+                        min="0"
+                        value={consumable.plannedUse}
+                        onChange={(event) =>
+                          handleConsumableFieldChange(
+                            consumable.id,
+                            "plannedUse",
+                            event.target.value
+                          )
+                        }
+                      />
+                    </label>
+                    <label className="app__field">
+                      <span className="app__field-label">Порог пополнения</span>
+                      <input
+                        className="app__input"
+                        type="number"
+                        min="0"
+                        value={consumable.reorderThreshold}
+                        onChange={(event) =>
+                          handleConsumableFieldChange(
+                            consumable.id,
+                            "reorderThreshold",
+                            event.target.value
+                          )
+                        }
+                      />
+                    </label>
+                    <label className="app__field">
+                      <span className="app__field-label">Потреблено</span>
+                      <input
+                        className="app__input"
+                        type="number"
+                        min="0"
+                        value={consumable.used}
+                        onChange={(event) =>
+                          handleConsumableUsageChange(
+                            consumable.id,
+                            event.target.value
+                          )
+                        }
+                      />
+                    </label>
+                    <label className="app__field">
+                      <span className="app__field-label">Ед.</span>
+                      <input
+                        className="app__input"
+                        type="text"
+                        value={consumable.unit}
+                        onChange={(event) =>
+                          handleConsumableFieldChange(
+                            consumable.id,
+                            "unit",
+                            event.target.value
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {consumableWarnings.length > 0 && (
+            <div className="app__warning">
+              <strong>Предупреждения по остаткам</strong>
+              <ul className="app__warning-list">
+                {consumableWarnings.map((warning) => (
+                  <li key={warning.id}>{warning.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="app__consumable-form">
+            <p className="app__label">Добавить расходник</p>
+            <div className="app__consumable-grid">
+              <label className="app__field">
+                <span className="app__field-label">Название</span>
+                <input
+                  className="app__input"
+                  type="text"
+                  value={consumableForm.name}
+                  onChange={(event) =>
+                    handleConsumableFormChange("name", event.target.value)
+                  }
+                />
+              </label>
+              <label className="app__field">
+                <span className="app__field-label">Ед.</span>
+                <input
+                  className="app__input"
+                  type="text"
+                  value={consumableForm.unit}
+                  onChange={(event) =>
+                    handleConsumableFormChange("unit", event.target.value)
+                  }
+                />
+              </label>
+              <label className="app__field">
+                <span className="app__field-label">Остаток</span>
+                <input
+                  className="app__input"
+                  type="number"
+                  min="0"
+                  value={consumableForm.onHand}
+                  onChange={(event) =>
+                    handleConsumableFormChange("onHand", event.target.value)
+                  }
+                />
+              </label>
+              <label className="app__field">
+                <span className="app__field-label">Порог пополнения</span>
+                <input
+                  className="app__input"
+                  type="number"
+                  min="0"
+                  value={consumableForm.reorderThreshold}
+                  onChange={(event) =>
+                    handleConsumableFormChange(
+                      "reorderThreshold",
+                      event.target.value
+                    )
+                  }
+                />
+              </label>
+              <label className="app__field">
+                <span className="app__field-label">План на run</span>
+                <input
+                  className="app__input"
+                  type="number"
+                  min="0"
+                  value={consumableForm.plannedUse}
+                  onChange={(event) =>
+                    handleConsumableFormChange("plannedUse", event.target.value)
+                  }
+                />
+              </label>
+            </div>
+            <button
+              type="button"
+              className="app__action-button"
+              onClick={handleAddConsumable}
+            >
+              Добавить в справочник
+            </button>
+          </div>
+        </section>
+      )}
       {activeScreen.id === "checklist" && (
         <section className="app__card">
           <p className="app__label">Checklist эксперимента</p>
+          {consumableWarnings.length > 0 && (
+            <div className="app__warning">
+              <strong>Перед стартом проверьте остатки</strong>
+              <ul className="app__warning-list">
+                {consumableWarnings.map((warning) => (
+                  <li key={warning.id}>{warning.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="app__checklist">
             {checklistSteps.map((step, index) => {
               const isComplete = step.status === "finished";
@@ -583,6 +970,21 @@ const App = () => {
           <p className="app__value">
             Здесь появится итоговая сводка эксперимента и журнал действий.
           </p>
+          <div className="app__consumption-log">
+            <p className="app__label">Лог расходников в ходе run</p>
+            {consumptionLogs.length === 0 ? (
+              <p className="app__hint">Пока нет записей о потреблении.</p>
+            ) : (
+              <ul className="app__log-list">
+                {consumptionLogs.map((entry) => (
+                  <li key={entry.id}>
+                    {entry.timestamp} — {entry.name}: {entry.quantity}{" "}
+                    {entry.unit}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
       )}
       <section className="app__card">
