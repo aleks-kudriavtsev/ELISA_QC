@@ -41,7 +41,8 @@ const protocolOrder = [
   "Direct ELISA",
   "Indirect ELISA",
   "Sandwich ELISA",
-  "Competitive ELISA"
+  "Competitive ELISA",
+  "DELFIA Eu-N1 DTA Labeling"
 ];
 
 const logExperimentStep = (stepName, status) => {
@@ -138,8 +139,8 @@ const initialChecklistSteps = [
   }
 ];
 
-const buildChecklistState = () =>
-  initialChecklistSteps.map((step) => ({
+const buildChecklistState = (steps = initialChecklistSteps) =>
+  steps.map((step) => ({
     ...step,
     values: step.fields.reduce((accumulator, field) => {
       return { ...accumulator, [field.id]: "" };
@@ -147,6 +148,37 @@ const buildChecklistState = () =>
     isConfirmed: false,
     status: "pending"
   }));
+
+const buildProtocolChecklistSteps = (protocol) => {
+  const stepSchemas = protocol?.schema?.properties?.steps?.prefixItems;
+  if (!Array.isArray(stepSchemas)) {
+    return null;
+  }
+
+  return stepSchemas.map((stepSchema, index) => {
+    const stepId = stepSchema?.properties?.id?.const ?? `step-${index + 1}`;
+    const title =
+      stepSchema?.properties?.name?.const ??
+      stepSchema?.title ??
+      `Шаг ${index + 1}`;
+    const uiConfig = stepSchema?.["x-ui"] ?? {};
+    const fields = (uiConfig.fields ?? []).map((field) => ({
+      id: field.id,
+      label: field.label,
+      placeholder: field.placeholder ?? "",
+      unit: field.unit ?? "",
+      dataType: field.dataType ?? "string"
+    }));
+
+    return {
+      id: stepId,
+      title,
+      fields,
+      confirmationLabel:
+        uiConfig.confirmationLabel ?? "Подтверждаю выполнение шага"
+    };
+  });
+};
 
 const evaluateChecklistStatus = (step) => {
   const hasInput = step.fields.some(
@@ -234,7 +266,9 @@ const App = () => {
   const [theme, setTheme] = useState("unknown");
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedProtocol, setSelectedProtocol] = useState(null);
-  const [checklistSteps, setChecklistSteps] = useState(buildChecklistState);
+  const [checklistSteps, setChecklistSteps] = useState(() =>
+    buildChecklistState()
+  );
   const [consumables, setConsumables] = useState(() => initialConsumables);
   const [consumptionLogs, setConsumptionLogs] = useState([]);
   const [consumableForm, setConsumableForm] = useState({
@@ -259,6 +293,10 @@ const App = () => {
   const consumableWarnings = useMemo(
     () => buildConsumableWarnings(consumables),
     [consumables]
+  );
+  const protocolChecklistSteps = useMemo(
+    () => buildProtocolChecklistSteps(selectedProtocol),
+    [selectedProtocol]
   );
 
   const protocols = useMemo(() => {
@@ -295,6 +333,14 @@ const App = () => {
 
     logExperimentStep("WebAppInit", "finished");
   }, []);
+
+  useEffect(() => {
+    if (protocolChecklistSteps?.length) {
+      setChecklistSteps(buildChecklistState(protocolChecklistSteps));
+      return;
+    }
+    setChecklistSteps(buildChecklistState());
+  }, [protocolChecklistSteps]);
 
   useEffect(() => {
     if (!activeScreen) {
@@ -622,7 +668,7 @@ const App = () => {
       </section>
       {activeScreen.id === "protocols" && (
         <section className="app__card">
-          <p className="app__label">Протоколы ELISA</p>
+          <p className="app__label">Протоколы ELISA/DELFIA</p>
           <div className="app__protocols">
             {protocols.map((protocol) => (
               <button
@@ -653,6 +699,32 @@ const App = () => {
               <p className="app__hint">
                 Версия схемы: {selectedProtocol.schemaVersion}
               </p>
+              {protocolChecklistSteps?.length ? (
+                <div className="app__protocol-breakdown">
+                  <p className="app__label">Контрольные этапы протокола</p>
+                  <ol className="app__step-list">
+                    {protocolChecklistSteps.map((step) => (
+                      <li key={step.id} className="app__step-item">
+                        <div className="app__step-title">{step.title}</div>
+                        {step.fields.length > 0 && (
+                          <div className="app__step-fields">
+                            {step.fields.map((field) => (
+                              <span key={field.id} className="app__chip">
+                                {field.label}
+                                {field.unit ? ` (${field.unit})` : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : (
+                <p className="app__hint">
+                  Для выбранного протокола используется базовый чек-лист.
+                </p>
+              )}
               <button
                 type="button"
                 className="app__action-button"
@@ -896,16 +968,19 @@ const App = () => {
                   </div>
                   <div className="app__checklist-fields">
                     {step.fields.map((field) => (
-                      <label
-                        key={field.id}
-                        className="app__field"
-                        htmlFor={`${step.id}-${field.id}`}
-                      >
-                        <span className="app__field-label">{field.label}</span>
+                    <label
+                      key={field.id}
+                      className="app__field"
+                      htmlFor={`${step.id}-${field.id}`}
+                    >
+                        <span className="app__field-label">
+                          {field.label}
+                          {field.unit ? ` (${field.unit})` : ""}
+                        </span>
                         <input
                           id={`${step.id}-${field.id}`}
                           className="app__input"
-                          type="text"
+                          type={field.dataType === "number" ? "number" : "text"}
                           placeholder={field.placeholder}
                           value={step.values[field.id]}
                           onChange={(event) =>
