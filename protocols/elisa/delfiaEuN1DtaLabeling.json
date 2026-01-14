@@ -1,0 +1,626 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "protocols/elisa/delfiaEuN1DtaLabeling.json",
+  "title": "DELFIA Eu-N1 DTA Labeling Protocol Template",
+  "description": "Template for preparing europium-labelled proteins or peptides using Eu-N1 DTA chelate for DELFIA time-resolved fluorometry assays.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "protocolId",
+    "name",
+    "description",
+    "applicability",
+    "reagents",
+    "buffers",
+    "steps"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the protocol template schema.",
+      "default": "1.0.0"
+    },
+    "protocolId": {
+      "type": "string",
+      "description": "Unique identifier for the protocol template.",
+      "default": "delfia-eu-n1-dta-labeling"
+    },
+    "name": {
+      "type": "string",
+      "const": "DELFIA Eu-N1 DTA Labeling"
+    },
+    "description": {
+      "type": "string",
+      "description": "Protocol for reconstitution, labeling, purification, and characterization of europium-tagged proteins/peptides."
+    },
+    "applicability": {
+      "type": "string",
+      "description": "Use for preparing Eu-labelled reagents for DELFIA time-resolved fluorometric assays."
+    },
+    "reagents": {
+      "type": "array",
+      "description": "Primary reagents used in the labeling workflow.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "role"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "role": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 6
+    },
+    "buffers": {
+      "type": "array",
+      "description": "Buffers used in reconstitution, labeling, and purification.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "purpose"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "purpose": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 4
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "prefixItems": [
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "storage-check" },
+            "name": { "const": "Проверка хранения и условий" },
+            "stepType": { "const": "storage" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "chelateStorageTempC" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "standardStorageTempC" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "chelateLotNumber" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "standardLotNumber" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Условия хранения подтверждены",
+            "fields": [
+              {
+                "id": "chelateStorageTempC",
+                "label": "Температура хранения хелата",
+                "placeholder": "-20",
+                "unit": "°C",
+                "dataType": "number"
+              },
+              {
+                "id": "standardStorageTempC",
+                "label": "Температура хранения стандарта Eu",
+                "placeholder": "2–8",
+                "unit": "°C",
+                "dataType": "string"
+              },
+              {
+                "id": "chelateLotNumber",
+                "label": "Партия хелата",
+                "placeholder": "Lot",
+                "dataType": "string"
+              },
+              {
+                "id": "standardLotNumber",
+                "label": "Партия стандарта Eu",
+                "placeholder": "Lot",
+                "dataType": "string"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "pretreatment" },
+            "name": { "const": "Предобработка образца" },
+            "stepType": { "const": "pretreatment" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "interferingCompounds" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "removalMethod" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Предобработка выполнена",
+            "fields": [
+              {
+                "id": "interferingCompounds",
+                "label": "Наличие мешающих компонентов",
+                "placeholder": "Tris, аммоний, NaN3 и др.",
+                "dataType": "string"
+              },
+              {
+                "id": "removalMethod",
+                "label": "Метод удаления",
+                "placeholder": "Диализ / гель-фильтрация / RP-HPLC",
+                "dataType": "string"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "concentration" },
+            "name": { "const": "Концентрация белка/пептида" },
+            "stepType": { "const": "concentration" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "proteinConcentrationMgMl" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "targetConcentrationMgMl" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Концентрация подтверждена",
+            "fields": [
+              {
+                "id": "proteinConcentrationMgMl",
+                "label": "Текущая концентрация",
+                "placeholder": "мг/мл",
+                "unit": "mg/mL",
+                "dataType": "number"
+              },
+              {
+                "id": "targetConcentrationMgMl",
+                "label": "Целевая концентрация",
+                "placeholder": "≥1 мг/мл",
+                "unit": "mg/mL",
+                "dataType": "number"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "chelate-reconstitution" },
+            "name": { "const": "Реконституция Eu-N1 DTA" },
+            "stepType": { "const": "reconstitution" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "chelateMassMg" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "reconstitutionVolumeUl" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "chelateConcentrationMmolL" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "reconstitutionBufferPh" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Хелат растворен и охлажден",
+            "fields": [
+              {
+                "id": "chelateMassMg",
+                "label": "Масса хелата",
+                "placeholder": "2",
+                "unit": "мг",
+                "dataType": "number"
+              },
+              {
+                "id": "reconstitutionVolumeUl",
+                "label": "Объем растворителя",
+                "placeholder": "100",
+                "unit": "µL",
+                "dataType": "number"
+              },
+              {
+                "id": "chelateConcentrationMmolL",
+                "label": "Концентрация хелата",
+                "placeholder": "5–30",
+                "unit": "mmol/L",
+                "dataType": "number"
+              },
+              {
+                "id": "reconstitutionBufferPh",
+                "label": "pH растворителя",
+                "placeholder": "≤7",
+                "dataType": "string"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "labeling-setup" },
+            "name": { "const": "Настройка реакции мечения" },
+            "stepType": { "const": "labeling" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "carbonateBufferConcentrationMmolL" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "reactionPhTarget" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "molarExcess" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "reactionVolumeUl" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Реакция подготовлена",
+            "fields": [
+              {
+                "id": "carbonateBufferConcentrationMmolL",
+                "label": "Конц. карбонатного буфера",
+                "placeholder": "50–100",
+                "unit": "mmol/L",
+                "dataType": "number"
+              },
+              {
+                "id": "reactionPhTarget",
+                "label": "Целевой pH реакции",
+                "placeholder": "9.0–9.3",
+                "dataType": "string"
+              },
+              {
+                "id": "molarExcess",
+                "label": "Мольный избыток хелата",
+                "placeholder": "например, 40x",
+                "dataType": "string"
+              },
+              {
+                "id": "reactionVolumeUl",
+                "label": "Объем реакции",
+                "placeholder": "µL",
+                "unit": "µL",
+                "dataType": "number"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "ph-incubation" },
+            "name": { "const": "Контроль pH и инкубация" },
+            "stepType": { "const": "incubation" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "phMeasured" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "phAdjustment" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "incubationTempC" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "incubationTimeHours" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "pH проверен и инкубация запущена",
+            "fields": [
+              {
+                "id": "phMeasured",
+                "label": "Измеренный pH",
+                "placeholder": "9.0–9.3",
+                "dataType": "string"
+              },
+              {
+                "id": "phAdjustment",
+                "label": "Корректировка pH",
+                "placeholder": "HCl/NaOH, объем",
+                "dataType": "string"
+              },
+              {
+                "id": "incubationTempC",
+                "label": "Температура инкубации",
+                "placeholder": "+4",
+                "unit": "°C",
+                "dataType": "number"
+              },
+              {
+                "id": "incubationTimeHours",
+                "label": "Время инкубации",
+                "placeholder": "4–16",
+                "unit": "ч",
+                "dataType": "number"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "purification" },
+            "name": { "const": "Очистка и колонка" },
+            "stepType": { "const": "purification" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "purificationMethod" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "columnType" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "elutionBuffer" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "columnDecontamination" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Очистка выполнена",
+            "fields": [
+              {
+                "id": "purificationMethod",
+                "label": "Метод очистки",
+                "placeholder": "Гель-фильтрация / RP-HPLC",
+                "dataType": "string"
+              },
+              {
+                "id": "columnType",
+                "label": "Колонка",
+                "placeholder": "Superdex / Sephadex",
+                "dataType": "string"
+              },
+              {
+                "id": "elutionBuffer",
+                "label": "Буфер элюции",
+                "placeholder": "Tris-HCl TSA",
+                "dataType": "string"
+              },
+              {
+                "id": "columnDecontamination",
+                "label": "Деконтаминация колонки",
+                "placeholder": "Фталат + 0.01% DTPA",
+                "dataType": "string"
+              },
+              {
+                "id": "bsaEquilibration",
+                "label": "Сатурация BSA",
+                "placeholder": "0.5 mL 7.5%",
+                "dataType": "string"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "characterization" },
+            "name": { "const": "Характеризация меченого продукта" },
+            "stepType": { "const": "characterization" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "euStandardDilution" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "enhancementSolutionVolumeUl" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "fluorometerModel" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "absorbance280" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Характеризация завершена",
+            "fields": [
+              {
+                "id": "euStandardDilution",
+                "label": "Разведение стандарта Eu",
+                "placeholder": "1:100",
+                "dataType": "string"
+              },
+              {
+                "id": "enhancementSolutionVolumeUl",
+                "label": "Объем Enhancement Solution",
+                "placeholder": "µL",
+                "unit": "µL",
+                "dataType": "number"
+              },
+              {
+                "id": "fluorometerModel",
+                "label": "Модель флуориметра",
+                "placeholder": "VICTOR / DELFIA 1234",
+                "dataType": "string"
+              },
+              {
+                "id": "fluorescenceReading",
+                "label": "Показания флуоресценции",
+                "placeholder": "counts",
+                "dataType": "string"
+              },
+              {
+                "id": "absorbance280",
+                "label": "A280 для расчета концентрации",
+                "placeholder": "OD",
+                "dataType": "string"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "filtration" },
+            "name": { "const": "Фильтрация" },
+            "stepType": { "const": "filtration" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "filtrationPoreSizeUm" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "filterType" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Фильтрация выполнена",
+            "fields": [
+              {
+                "id": "filtrationPoreSizeUm",
+                "label": "Размер пор фильтра",
+                "placeholder": "0.22",
+                "unit": "µm",
+                "dataType": "number"
+              },
+              {
+                "id": "filterType",
+                "label": "Тип мембраны",
+                "placeholder": "Low protein binding",
+                "dataType": "string"
+              }
+            ]
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "storage-use" },
+            "name": { "const": "Хранение и рабочие условия" },
+            "stepType": { "const": "storage-use" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                { "contains": { "properties": { "fieldId": { "const": "storageTemperatureC" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "stabilizerBsaPercent" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "assayBuffer" } }, "required": ["fieldId"] } },
+                { "contains": { "properties": { "fieldId": { "const": "workingAmountNgPerWell" } }, "required": ["fieldId"] } }
+              ]
+            }
+          },
+          "x-ui": {
+            "confirmationLabel": "Условия хранения подтверждены",
+            "fields": [
+              {
+                "id": "storageTemperatureC",
+                "label": "Температура хранения",
+                "placeholder": "+4 / -20 / -70",
+                "unit": "°C",
+                "dataType": "string"
+              },
+              {
+                "id": "stabilizerBsaPercent",
+                "label": "BSA стабилизатор",
+                "placeholder": "0.1",
+                "unit": "%",
+                "dataType": "number"
+              },
+              {
+                "id": "assayBuffer",
+                "label": "Рабочий буфер",
+                "placeholder": "DELFIA Assay Buffer",
+                "dataType": "string"
+              },
+              {
+                "id": "workingAmountNgPerWell",
+                "label": "Рабочее количество",
+                "placeholder": "5–100",
+                "unit": "ng/лунку",
+                "dataType": "number"
+              }
+            ]
+          },
+          "additionalProperties": false
+        }
+      ],
+      "items": false
+    }
+  },
+  "definitions": {
+    "field": {
+      "type": "object",
+      "required": ["fieldId", "label", "dataType"],
+      "properties": {
+        "fieldId": {
+          "type": "string",
+          "enum": [
+            "chelateStorageTempC",
+            "standardStorageTempC",
+            "chelateLotNumber",
+            "standardLotNumber",
+            "interferingCompounds",
+            "removalMethod",
+            "proteinConcentrationMgMl",
+            "targetConcentrationMgMl",
+            "chelateMassMg",
+            "reconstitutionVolumeUl",
+            "chelateConcentrationMmolL",
+            "reconstitutionBufferPh",
+            "carbonateBufferConcentrationMmolL",
+            "reactionPhTarget",
+            "molarExcess",
+            "reactionVolumeUl",
+            "phMeasured",
+            "phAdjustment",
+            "incubationTempC",
+            "incubationTimeHours",
+            "purificationMethod",
+            "columnType",
+            "elutionBuffer",
+            "columnDecontamination",
+            "bsaEquilibration",
+            "euStandardDilution",
+            "enhancementSolutionVolumeUl",
+            "fluorometerModel",
+            "fluorescenceReading",
+            "absorbance280",
+            "filtrationPoreSizeUm",
+            "filterType",
+            "storageTemperatureC",
+            "stabilizerBsaPercent",
+            "assayBuffer",
+            "workingAmountNgPerWell"
+          ]
+        },
+        "label": { "type": "string" },
+        "dataType": {
+          "type": "string",
+          "enum": ["number", "string"]
+        },
+        "unit": { "type": "string" },
+        "required": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
