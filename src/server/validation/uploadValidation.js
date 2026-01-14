@@ -1,6 +1,6 @@
 const { requiredFields, validateIsoTimestamp } = require('./common');
 
-const allowedUploadKinds = new Set(['csv', 'image']);
+const allowedUploadKinds = new Set(['csv', 'image', 'xlsx']);
 
 const validateUpload = (payload) => {
   const errors = [];
@@ -21,14 +21,17 @@ const validateUpload = (payload) => {
   );
   errors.push(...validateIsoTimestamp(payload.createdAt, 'Upload.createdAt'));
   if (payload.kind && !allowedUploadKinds.has(payload.kind)) {
-    errors.push('Upload.kind must be csv or image');
+    errors.push('Upload.kind must be csv, xlsx, or image');
   }
   if (payload.storagePath) {
     if (payload.kind === 'image' && !payload.storagePath.startsWith('images/')) {
       errors.push('Upload.storagePath must start with images/ for image uploads');
     }
-    if (payload.kind === 'csv' && !payload.storagePath.startsWith('csv/')) {
-      errors.push('Upload.storagePath must start with csv/ for csv uploads');
+    if (
+      (payload.kind === 'csv' || payload.kind === 'xlsx') &&
+      !payload.storagePath.startsWith('csv/')
+    ) {
+      errors.push('Upload.storagePath must start with csv/ for tabular uploads');
     }
   }
   if (payload.sizeBytes !== undefined && Number.isNaN(Number(payload.sizeBytes))) {

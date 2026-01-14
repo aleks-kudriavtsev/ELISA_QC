@@ -9,6 +9,12 @@ const { validateAttachment } = require('../validation/attachmentValidation');
 const { validateInstrumentRecord } = require('../validation/instrumentRecordValidation');
 const { validateUpload } = require('../validation/uploadValidation');
 const { validateCsvContent } = require('../validation/csvValidation');
+const { resolveReaderTemplate } = require('./readerTemplates');
+const {
+  buildNormalizedCsv,
+  loadTabularData,
+  normalizeInstrumentRows,
+} = require('./tabularImport');
 
 const defaultStorageRoot = path.resolve(__dirname, '../../../..');
 
@@ -27,8 +33,18 @@ const resolveKind = ({ kind, contentType, fileName }) => {
   if (contentType?.startsWith('image/')) {
     return 'image';
   }
-  if (contentType === 'text/csv' || fileName?.toLowerCase().endsWith('.csv')) {
+  if (
+    contentType === 'text/csv' ||
+    fileName?.toLowerCase().endsWith('.csv')
+  ) {
     return 'csv';
+  }
+  if (
+    contentType ===
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    fileName?.toLowerCase().endsWith('.xlsx')
+  ) {
+    return 'xlsx';
   }
   return 'unknown';
 };
@@ -103,7 +119,11 @@ const createUploadHandler = ({
       const contentType = file.contentType || 'application/octet-stream';
       const resolvedKind = resolveKind({ kind: file.kind, contentType, fileName });
       const storageDir =
-        resolvedKind === 'csv' ? 'csv/raw' : resolvedKind === 'image' ? 'images/raw' : 'uploads';
+        resolvedKind === 'csv' || resolvedKind === 'xlsx'
+          ? 'csv/raw'
+          : resolvedKind === 'image'
+            ? 'images/raw'
+            : 'uploads';
       const storagePath = path.join(storageDir, runId, fileName);
       const absolutePath = path.join(storageRoot, storagePath);
       const id = `upload_${Date.now()}_${index}`;
@@ -114,24 +134,62 @@ const createUploadHandler = ({
         continue;
       }
 
-      if (resolvedKind === 'csv') {
-        const csvText = file.contentText
-          ? String(file.contentText)
-          : file.contentBase64
-            ? decodeBase64(file.contentBase64).toString('utf8')
-            : '';
-        const csvErrors = validateCsvContent(csvText, `CSV ${fileName}`);
+      const dataBuffer = file.contentBase64
+        ? decodeBase64(file.contentBase64)
+        : Buffer.from(file.contentText || '', 'utf8');
+
+      let processedCsv = null;
+      let processedPath = null;
+      let readerTemplate = null;
+
+      if (resolvedKind === 'csv' || resolvedKind === 'xlsx') {
+        const { headers, rows } = loadTabularData({
+          kind: resolvedKind,
+          dataBuffer,
+          contentText: file.contentText,
+        });
+        readerTemplate = resolveReaderTemplate({
+          templateId: file.templateId,
+          instrumentType: file.instrumentType,
+          headers,
+        });
+
+        if (!readerTemplate) {
+          errors.push(`No matching import template for ${fileName}`);
+          continue;
+        }
+
+        const { normalizedRows } = normalizeInstrumentRows({
+          headers,
+          rows,
+          template: readerTemplate,
+        });
+
+        if (normalizedRows.length === 0) {
+          errors.push(`No usable rows found for ${fileName}`);
+          continue;
+        }
+
+        processedCsv = buildNormalizedCsv(normalizedRows);
+        const csvErrors = validateCsvContent(processedCsv, `CSV ${fileName}`);
         if (csvErrors.length > 0) {
           errors.push(...csvErrors);
           continue;
         }
+
+        const baseName = path.parse(fileName).name;
+        const processedFileName = `${baseName}_normalized.csv`;
+        processedPath = path.join('csv/processed', runId, processedFileName);
       }
 
       await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-      const dataBuffer = file.contentBase64
-        ? decodeBase64(file.contentBase64)
-        : Buffer.from(file.contentText || '', 'utf8');
       await fs.writeFile(absolutePath, dataBuffer);
+
+      if (processedCsv && processedPath) {
+        const processedAbsolute = path.join(storageRoot, processedPath);
+        await fs.mkdir(path.dirname(processedAbsolute), { recursive: true });
+        await fs.writeFile(processedAbsolute, processedCsv, 'utf8');
+      }
 
       const upload = new Upload({
         id,
@@ -171,15 +229,17 @@ const createUploadHandler = ({
         }
       }
 
-      if (resolvedKind === 'csv') {
+      if (resolvedKind === 'csv' || resolvedKind === 'xlsx') {
         const instrumentRecord = new InstrumentRecord({
           id: `inst_${Date.now()}_${index}`,
           runId,
           stepId,
           instrumentId: file.instrumentId || 'reader_unknown',
-          instrumentType: file.instrumentType || 'reader',
+          instrumentType: readerTemplate?.instrumentType || file.instrumentType || 'reader',
           recordedAt: timestamp,
-          dataPath: storagePath,
+          dataPath: processedPath || storagePath,
+          templateId: readerTemplate?.id || null,
+          rawPath: storagePath,
         });
         const instrumentErrors = validateInstrumentRecord(instrumentRecord);
         if (instrumentErrors.length > 0) {
