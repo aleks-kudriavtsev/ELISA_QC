@@ -1,30 +1,8 @@
-const { getProtocolSchema } = require('../protocols');
-
-const extractExpectedFieldIds = (expectedFieldsSchema) => {
-  const constraints = expectedFieldsSchema?.allOf || [];
-  return constraints
-    .map((constraint) => constraint?.contains?.properties?.fieldId?.const)
-    .filter(Boolean);
-};
-
-const extractProtocolSteps = (protocolSchema) => {
-  const stepSchemas = protocolSchema?.properties?.steps?.prefixItems || [];
-  return stepSchemas
-    .map((stepSchema) => {
-      const stepId =
-        stepSchema?.properties?.id?.const || stepSchema?.properties?.id?.default;
-      const stepName =
-        stepSchema?.properties?.name?.const || stepSchema?.properties?.name?.default;
-      return {
-        stepId,
-        stepName,
-        expectedFieldIds: extractExpectedFieldIds(
-          stepSchema?.properties?.expectedFields,
-        ),
-      };
-    })
-    .filter((step) => step.stepId);
-};
+const {
+  getProtocolSchema,
+  getProtocolVersionHistory,
+} = require('../protocols');
+const { extractProtocolSteps } = require('../protocols/protocolSteps');
 
 const validateProtocolReference = (payload, protocolSchema, context) => {
   const errors = [];
@@ -37,11 +15,14 @@ const validateProtocolReference = (payload, protocolSchema, context) => {
     return errors;
   }
 
-  const schemaVersion = protocolSchema?.properties?.schemaVersion?.default;
-  if (payload.version && schemaVersion && payload.version !== schemaVersion) {
-    errors.push(
-      `${context}.version must match protocol schema version ${schemaVersion}`,
-    );
+  const history = getProtocolVersionHistory(payload.protocolId);
+  if (payload.version && history.length > 0) {
+    const matchesVersion = history.some((entry) => entry.version === payload.version);
+    if (!matchesVersion) {
+      errors.push(
+        `${context}.version must match a known protocol schema version`,
+      );
+    }
   }
 
   return errors;
@@ -91,16 +72,48 @@ const validatePlanAgainstProtocol = (planPayload, protocolSchema) => {
 };
 
 const validateRunAgainstProtocol = (runPayload, planPayload) => {
-  if (!planPayload?.protocolId) {
-    return [];
-  }
-  const protocolSchema = getProtocolSchema(planPayload.protocolId);
   const errors = [];
-  errors.push(
-    ...validateProtocolReference(planPayload, protocolSchema, 'ExperimentPlan'),
-  );
-  if (protocolSchema) {
-    errors.push(...validatePlanAgainstProtocol(planPayload, protocolSchema));
+  const protocolId = runPayload?.protocolId || planPayload?.protocolId;
+  if (!protocolId) {
+    return errors;
+  }
+  const protocolSchema = getProtocolSchema(protocolId);
+  if (!protocolSchema) {
+    errors.push(`ExperimentRun.protocolId references unknown protocol ${protocolId}`);
+    return errors;
+  }
+  if (planPayload?.protocolId) {
+    errors.push(
+      ...validateProtocolReference(planPayload, protocolSchema, 'ExperimentPlan'),
+    );
+    if (protocolSchema) {
+      errors.push(...validatePlanAgainstProtocol(planPayload, protocolSchema));
+    }
+  }
+  if (!runPayload?.protocolVersion) {
+    errors.push('ExperimentRun.protocolVersion is required for protocol validation');
+  } else {
+    const history = getProtocolVersionHistory(protocolId);
+    const matchesVersion = history.some(
+      (entry) => entry.version === runPayload.protocolVersion,
+    );
+    if (!matchesVersion) {
+      errors.push('ExperimentRun.protocolVersion must reference a known protocol version');
+    }
+  }
+  if (
+    runPayload?.protocolVersion &&
+    planPayload?.version &&
+    runPayload.protocolVersion !== planPayload.version
+  ) {
+    errors.push('ExperimentRun.protocolVersion must match ExperimentPlan.version');
+  }
+  if (
+    runPayload?.protocolId &&
+    planPayload?.protocolId &&
+    runPayload.protocolId !== planPayload.protocolId
+  ) {
+    errors.push('ExperimentRun.protocolId must match ExperimentPlan.protocolId');
   }
   if (planPayload.id && runPayload?.planId && planPayload.id !== runPayload.planId) {
     errors.push('ExperimentRun.planId must reference the selected plan');

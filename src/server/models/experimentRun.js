@@ -4,6 +4,8 @@ class ExperimentRun {
   constructor({
     id,
     planId,
+    protocolId,
+    protocolVersion,
     runSeriesId,
     designId,
     designRowId,
@@ -17,6 +19,8 @@ class ExperimentRun {
   }) {
     this.id = id;
     this.planId = planId;
+    this.protocolId = protocolId;
+    this.protocolVersion = protocolVersion;
     this.runSeriesId = runSeriesId;
     this.designId = designId;
     this.designRowId = designRowId;

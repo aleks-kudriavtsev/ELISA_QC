@@ -179,16 +179,21 @@ const buildSignature = () => {
   };
 };
 
-const buildRunPayload = (overrides = {}) => ({
-  id: state.runId,
-  planId: state.planId,
-  runNumber: 1,
-  status: "running",
-  startedByUserId: getUserInfo().userId,
-  startedAt: state.runStartedAt,
-  lots: state.lots,
-  ...overrides,
-});
+const buildRunPayload = (overrides = {}) => {
+  const selectedProtocol = state.protocols[state.selectedProtocolId] || {};
+  return {
+    id: state.runId,
+    planId: state.planId,
+    protocolId: selectedProtocol.protocolId || state.selectedProtocolId,
+    protocolVersion: selectedProtocol.protocolVersion,
+    runNumber: 1,
+    status: "running",
+    startedByUserId: getUserInfo().userId,
+    startedAt: state.runStartedAt,
+    lots: state.lots,
+    ...overrides,
+  };
+};
 
 const sendRunPayload = async () => {
   try {

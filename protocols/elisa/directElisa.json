@@ -216,6 +216,60 @@
       "items": false
     }
   },
+  "versionHistory": [
+    {
+      "version": "1.0.0",
+      "releasedAt": "2024-01-01T00:00:00Z",
+      "summary": "Initial protocol definition.",
+      "steps": [
+        {
+          "stepId": "direct-coating",
+          "stepName": "Coating",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "direct-blocking",
+          "stepName": "Blocking",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "direct-incubation",
+          "stepName": "Incubation (Primary Antibody)",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "direct-wash",
+          "stepName": "Wash",
+          "expectedFieldIds": ["timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "direct-substrate",
+          "stepName": "Substrate",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "direct-stop",
+          "stepName": "Stop Reaction",
+          "expectedFieldIds": ["volumeUl"]
+        },
+        {
+          "stepId": "direct-read",
+          "stepName": "Read",
+          "expectedFieldIds": ["od"]
+        }
+      ]
+    }
+  ],
   "definitions": {
     "field": {
       "type": "object",

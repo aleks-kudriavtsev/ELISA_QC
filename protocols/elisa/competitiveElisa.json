@@ -216,6 +216,60 @@
       "items": false
     }
   },
+  "versionHistory": [
+    {
+      "version": "1.0.0",
+      "releasedAt": "2024-01-01T00:00:00Z",
+      "summary": "Initial protocol definition.",
+      "steps": [
+        {
+          "stepId": "competitive-coating",
+          "stepName": "Coating",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "competitive-blocking",
+          "stepName": "Blocking",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "competitive-incubation",
+          "stepName": "Incubation (Competition)",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "competitive-wash",
+          "stepName": "Wash",
+          "expectedFieldIds": ["timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "competitive-substrate",
+          "stepName": "Substrate",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "competitive-stop",
+          "stepName": "Stop Reaction",
+          "expectedFieldIds": ["volumeUl"]
+        },
+        {
+          "stepId": "competitive-read",
+          "stepName": "Read",
+          "expectedFieldIds": ["od"]
+        }
+      ]
+    }
+  ],
   "definitions": {
     "field": {
       "type": "object",
