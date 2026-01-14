@@ -363,6 +363,11 @@ body {
   color: var(--tg-theme-hint-color, #667085);
 }
 
+.app__field-warning {
+  font-size: 12px;
+  color: var(--tg-theme-destructive-text-color, #b42318);
+}
+
 .app__input {
   border-radius: 12px;
   border: 1px solid
