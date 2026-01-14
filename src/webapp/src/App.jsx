@@ -225,7 +225,9 @@ const buildProtocolChecklistSteps = (protocol) => {
       label: field.label,
       placeholder: field.placeholder ?? "",
       unit: field.unit ?? "",
-      dataType: field.dataType ?? "string"
+      dataType: field.dataType ?? "string",
+      minValue: field.minValue,
+      warningMessage: field.warningMessage ?? ""
     }));
 
     return {
@@ -1025,33 +1027,62 @@ const App = () => {
                     </span>
                   </div>
                   <div className="app__checklist-fields">
-                    {step.fields.map((field) => (
-                    <label
-                      key={field.id}
-                      className="app__field"
-                      htmlFor={`${step.id}-${field.id}`}
-                    >
-                        <span className="app__field-label">
-                          {field.label}
-                          {field.unit ? ` (${field.unit})` : ""}
-                        </span>
-                        <input
-                          id={`${step.id}-${field.id}`}
-                          className="app__input"
-                          type={field.dataType === "number" ? "number" : "text"}
-                          placeholder={field.placeholder}
-                          value={step.values[field.id]}
-                          onChange={(event) =>
-                            handleChecklistFieldChange(
-                              step.id,
-                              field.id,
-                              event.target.value
-                            )
-                          }
-                          required
-                        />
-                      </label>
-                    ))}
+                    {step.fields.map((field) => {
+                      const fieldValue = step.values[field.id];
+                      const numericValue = Number.parseFloat(fieldValue);
+                      const hasMinValue = typeof field.minValue === "number";
+                      const showWarning =
+                        hasMinValue &&
+                        fieldValue.trim() !== "" &&
+                        Number.isFinite(numericValue) &&
+                        numericValue < field.minValue;
+                      const warningText = showWarning
+                        ? field.warningMessage ||
+                          `Минимум ${field.minValue}${
+                            field.unit ? ` ${field.unit}` : ""
+                          }.`
+                        : null;
+
+                      return (
+                        <label
+                          key={field.id}
+                          className="app__field"
+                          htmlFor={`${step.id}-${field.id}`}
+                        >
+                          <span className="app__field-label">
+                            {field.label}
+                            {field.unit ? ` (${field.unit})` : ""}
+                          </span>
+                          <input
+                            id={`${step.id}-${field.id}`}
+                            className="app__input"
+                            type={
+                              field.dataType === "number" ? "number" : "text"
+                            }
+                            placeholder={field.placeholder}
+                            min={
+                              field.dataType === "number" && hasMinValue
+                                ? field.minValue
+                                : undefined
+                            }
+                            value={fieldValue}
+                            onChange={(event) =>
+                              handleChecklistFieldChange(
+                                step.id,
+                                field.id,
+                                event.target.value
+                              )
+                            }
+                            required
+                          />
+                          {warningText ? (
+                            <span className="app__field-warning">
+                              {warningText}
+                            </span>
+                          ) : null}
+                        </label>
+                      );
+                    })}
                   </div>
                   <label className="app__checkbox">
                     <input

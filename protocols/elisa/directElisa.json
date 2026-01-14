@@ -19,7 +19,7 @@
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
       "description": "Semantic version of the protocol template schema.",
-      "default": "1.1.0"
+      "default": "1.2.0"
     },
     "protocolId": {
       "type": "string",
@@ -213,6 +213,83 @@
           "type": "object",
           "required": ["id", "name", "stepType", "expectedFields"],
           "properties": {
+            "id": { "const": "direct-concentration-measurement" },
+            "name": { "const": "Измерение концентрации" },
+            "stepType": { "const": "concentrationMeasurement" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": {
+                      "fieldId": { "const": "concentrationMethod" }
+                    },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "concentrationValue" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "measurementDate" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": {
+                      "fieldId": { "const": "measurementOperator" }
+                    },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "x-ui": {
+            "fields": [
+              {
+                "id": "concentrationMethod",
+                "label": "Метод",
+                "placeholder": "A280 / Lowry / Bradford",
+                "dataType": "string"
+              },
+              {
+                "id": "concentrationValue",
+                "label": "Концентрация",
+                "placeholder": "Например, 0.5",
+                "unit": "мкг/мл",
+                "dataType": "number",
+                "minValue": 0.1,
+                "warningMessage": "Концентрация ниже минимального уровня (0.1 мкг/мл)."
+              },
+              {
+                "id": "measurementDate",
+                "label": "Дата",
+                "placeholder": "YYYY-MM-DD",
+                "dataType": "string"
+              },
+              {
+                "id": "measurementOperator",
+                "label": "Оператор",
+                "placeholder": "ФИО",
+                "dataType": "string"
+              }
+            ],
+            "confirmationLabel": "Концентрация измерена"
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
             "id": { "const": "direct-coating" },
             "name": { "const": "Coating" },
             "stepType": { "const": "coating" },
@@ -352,6 +429,88 @@
   },
   "versionHistory": [
     {
+      "version": "1.2.0",
+      "releasedAt": "2024-09-15T00:00:00Z",
+      "summary": "Added concentration measurement before coating.",
+      "steps": [
+        {
+          "stepId": "direct-buffer-preparation",
+          "stepName": "Buffer preparation",
+          "expectedFieldIds": [
+            "composition",
+            "preparationDate",
+            "expirationDate",
+            "lotNumber"
+          ]
+        },
+        {
+          "stepId": "direct-ph-check",
+          "stepName": "pH verification",
+          "expectedFieldIds": ["ph"]
+        },
+        {
+          "stepId": "direct-storage-check",
+          "stepName": "Lot & storage conditions",
+          "expectedFieldIds": ["lotNumber", "storageConditions"]
+        },
+        {
+          "stepId": "direct-concentration-measurement",
+          "stepName": "Измерение концентрации",
+          "expectedFieldIds": [
+            "concentrationMethod",
+            "concentrationValue",
+            "measurementDate",
+            "measurementOperator"
+          ]
+        },
+        {
+          "stepId": "direct-coating",
+          "stepName": "Coating",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "direct-blocking",
+          "stepName": "Blocking",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "direct-incubation",
+          "stepName": "Incubation (Primary Antibody)",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "direct-wash",
+          "stepName": "Wash",
+          "expectedFieldIds": ["timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "direct-substrate",
+          "stepName": "Substrate",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "direct-stop",
+          "stepName": "Stop Reaction",
+          "expectedFieldIds": ["volumeUl"]
+        },
+        {
+          "stepId": "direct-read",
+          "stepName": "Read",
+          "expectedFieldIds": ["od"]
+        }
+      ]
+    },
+    {
       "version": "1.1.0",
       "releasedAt": "2024-06-01T00:00:00Z",
       "summary": "Added buffer preparation, pH verification, and storage checks.",
@@ -490,6 +649,10 @@
             "expirationDate",
             "lotNumber",
             "storageConditions",
+            "concentrationMethod",
+            "concentrationValue",
+            "measurementDate",
+            "measurementOperator",
             "temperatureC",
             "timeMin",
             "volumeUl",
