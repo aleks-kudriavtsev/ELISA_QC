@@ -9,6 +9,7 @@ class StepLog {
     status,
     timestamp,
     message,
+    completionSignature,
     lots = [],
   }) {
     this.id = id;
@@ -18,6 +19,7 @@ class StepLog {
     this.status = status;
     this.timestamp = timestamp;
     this.message = message;
+    this.completionSignature = completionSignature;
     this.lots = Array.isArray(lots) ? lots.map((lot) => new LotBatch(lot)) : [];
   }
 }

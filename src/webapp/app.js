@@ -99,6 +99,7 @@ const state = {
   planId: `plan-${Date.now()}`,
   runStartedAt: new Date().toISOString(),
   stepLogSequence: 0,
+  auditLogSequence: 0,
 };
 
 const webApp = window.Telegram?.WebApp;
@@ -156,15 +157,37 @@ const postJson = async (url, payload) => {
   return response.json().catch(() => ({}));
 };
 
-const buildRunPayload = () => ({
+const getUserInfo = () => {
+  const user = webApp?.initDataUnsafe?.user;
+  if (!user) {
+    return { userId: "user-unknown", userName: "Unknown user" };
+  }
+  const userName = [user.first_name, user.last_name].filter(Boolean).join(" ");
+  return {
+    userId: user.id?.toString() || "user-unknown",
+    userName: userName || user.username || "Unknown user",
+  };
+};
+
+const buildSignature = () => {
+  const { userId, userName } = getUserInfo();
+  return {
+    userId,
+    userName,
+    timestamp: new Date().toISOString(),
+    method: "telegram-webapp",
+  };
+};
+
+const buildRunPayload = (overrides = {}) => ({
   id: state.runId,
   planId: state.planId,
   runNumber: 1,
   status: "running",
-  startedByUserId:
-    webApp?.initDataUnsafe?.user?.id?.toString() || "user-unknown",
+  startedByUserId: getUserInfo().userId,
   startedAt: state.runStartedAt,
   lots: state.lots,
+  ...overrides,
 });
 
 const sendRunPayload = async () => {
@@ -179,6 +202,7 @@ const buildStepLog = (step, status) => {
   state.stepLogSequence += 1;
   const timestamp = new Date().toISOString();
   const message = `step=${step.id} name=${step.title} status=${status} timestamp=${timestamp} lots=${formatLotSummary(state.lots)}`;
+  const completionSignature = status === "finished" ? buildSignature() : null;
   return {
     id: `step-${state.stepLogSequence}`,
     runId: state.runId,
@@ -187,6 +211,7 @@ const buildStepLog = (step, status) => {
     status,
     timestamp,
     message,
+    completionSignature,
     lots: state.lots,
   };
 };
@@ -197,6 +222,50 @@ const sendStepLog = async (stepLog) => {
   } catch (error) {
     console.warn("Failed to sync step log.", error);
   }
+};
+
+const serializeAuditValue = (value) => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch (error) {
+    return String(value);
+  }
+};
+
+const buildAuditLogEntry = ({ field, oldValue, newValue, context = {} }) => {
+  state.auditLogSequence += 1;
+  const { userId, userName } = getUserInfo();
+  return {
+    id: `audit-${state.auditLogSequence}`,
+    runId: state.runId,
+    userId,
+    userName,
+    timestamp: new Date().toISOString(),
+    field,
+    oldValue: serializeAuditValue(oldValue),
+    newValue: serializeAuditValue(newValue),
+    context,
+  };
+};
+
+const sendAuditLog = async (auditLog) => {
+  try {
+    await postJson(`/api/runs/${state.runId}/audit-logs`, auditLog);
+  } catch (error) {
+    console.warn("Failed to sync audit log.", error);
+  }
+};
+
+const logAuditChange = ({ field, oldValue, newValue, context }) => {
+  const auditLog = buildAuditLogEntry({ field, oldValue, newValue, context });
+  console.info(JSON.stringify(auditLog));
+  void sendAuditLog(auditLog);
 };
 
 const extractExpectedFieldIds = (expectedFieldsSchema) => {
@@ -322,10 +391,17 @@ const startTimer = (stepId) => {
     return;
   }
 
+  const previousState = { isRunning: timerState.isRunning, remainingMs: timerState.remainingMs };
   setTimerState(stepId, { isRunning: true, lastTickAt: Date.now() });
   if (!timerIntervals[stepId]) {
     timerIntervals[stepId] = setInterval(() => tickTimer(stepId), 1000);
   }
+  logAuditChange({
+    field: `timers.${stepId}.state`,
+    oldValue: previousState,
+    newValue: getTimerState(stepId),
+    context: { stepId, action: "start" },
+  });
   render();
 };
 
@@ -335,11 +411,18 @@ const pauseTimer = (stepId) => {
     return;
   }
 
+  const previousState = { isRunning: timerState.isRunning, remainingMs: timerState.remainingMs };
   const now = Date.now();
   const elapsed = now - (timerState.lastTickAt || now);
   const remainingMs = Math.max(0, timerState.remainingMs - elapsed);
   setTimerState(stepId, { isRunning: false, lastTickAt: null, remainingMs });
   stopTimerInterval(stepId);
+  logAuditChange({
+    field: `timers.${stepId}.state`,
+    oldValue: previousState,
+    newValue: getTimerState(stepId),
+    context: { stepId, action: "pause" },
+  });
   render();
 };
 
@@ -348,6 +431,7 @@ const resetTimer = (stepId) => {
   if (!timerState) {
     return;
   }
+  const previousState = { ...timerState };
   const nextRemainingMs = timerState.durationMin * 60 * 1000;
   setTimerState(stepId, {
     remainingMs: nextRemainingMs,
@@ -356,6 +440,12 @@ const resetTimer = (stepId) => {
   });
   stopTimerInterval(stepId);
   setReminderState(stepId, false);
+  logAuditChange({
+    field: `timers.${stepId}.state`,
+    oldValue: previousState,
+    newValue: getTimerState(stepId),
+    context: { stepId, action: "reset" },
+  });
   render();
 };
 
@@ -428,6 +518,35 @@ const fetchSummary = async () => {
       error: error.message || "Summary request failed.",
       message: "Summary request failed.",
     });
+  }
+};
+
+const exportAuditLog = async () => {
+  try {
+    const response = await fetch(
+      `/api/audit-logs?runId=${state.runId}&format=csv`,
+      {
+        headers: {
+          "X-Telegram-Init-Data": webApp?.initData || "",
+        },
+      },
+    );
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const message = payload?.error?.message || "Audit log export failed.";
+      throw new Error(message);
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `audit-log-${state.runId}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.warn("Failed to export audit log.", error);
   }
 };
 
@@ -635,7 +754,14 @@ const renderProtocolSelection = () => {
   }
 
   select.addEventListener("change", (event) => {
+    const previousProtocol = state.selectedProtocolId;
     state.selectedProtocolId = event.target.value;
+    logAuditChange({
+      field: "protocolId",
+      oldValue: previousProtocol,
+      newValue: state.selectedProtocolId,
+      context: { stepId: "protocol" },
+    });
     render();
   });
 
@@ -721,7 +847,14 @@ const renderPlanBuilder = () => {
     if (!value) {
       return;
     }
+    const previousItems = [...state.planItems];
     state.planItems.push(value);
+    logAuditChange({
+      field: "planItems",
+      oldValue: previousItems,
+      newValue: state.planItems,
+      context: { stepId: "plan", action: "add" },
+    });
     input.value = "";
     render();
   });
@@ -758,7 +891,14 @@ const renderChecklist = () => {
     checkbox.type = "checkbox";
     checkbox.checked = checked;
     checkbox.addEventListener("change", (event) => {
+      const previousValue = state.checklist[label];
       state.checklist[label] = event.target.checked;
+      logAuditChange({
+        field: `checklist.${label}`,
+        oldValue: previousValue,
+        newValue: state.checklist[label],
+        context: { stepId: "checklist" },
+      });
       render();
     });
 
@@ -809,12 +949,19 @@ const renderChecklist = () => {
     if (!lotNumber) {
       return;
     }
+    const previousLots = [...state.lots];
     state.lotSequence += 1;
     state.lots.push({
       id: `lot-${state.lotSequence}`,
       materialType: typeSelect.value,
       lotNumber,
       description: lotDescription.value.trim(),
+    });
+    logAuditChange({
+      field: "lots",
+      oldValue: previousLots,
+      newValue: state.lots,
+      context: { stepId: "checklist", action: "add" },
     });
     lotInput.value = "";
     lotDescription.value = "";
@@ -840,7 +987,14 @@ const renderChecklist = () => {
       removeButton.className = "ghostButton";
       removeButton.textContent = "Remove";
       removeButton.addEventListener("click", () => {
+        const previousLots = [...state.lots];
         state.lots = state.lots.filter((entry) => entry.id !== lot.id);
+        logAuditChange({
+          field: "lots",
+          oldValue: previousLots,
+          newValue: state.lots,
+          context: { stepId: "checklist", action: "remove", lotId: lot.id },
+        });
         render();
       });
       item.appendChild(removeButton);
@@ -908,8 +1062,15 @@ const renderUploads = () => {
   }
 
   input.addEventListener("change", (event) => {
+    const previousFiles = state.uploads.map((file) => file.name);
     const files = Array.from(event.target.files || []);
     state.uploads = files;
+    logAuditChange({
+      field: "uploads.selected",
+      oldValue: previousFiles,
+      newValue: files.map((file) => file.name),
+      context: { stepId: "uploads" },
+    });
     updateUploadStatus({ state: "idle", message: "", errors: [], items: [] });
     render();
   });
@@ -964,8 +1125,20 @@ const renderTimerStep = (stepId, title, description) => {
   durationInput.value = String(timerState.durationMin);
   durationInput.disabled = timerState.isRunning;
   durationInput.addEventListener("change", (event) => {
+    const previousValue = timerState.durationMin;
     const nextValue = Number.parseInt(event.target.value, 10);
+    if (!Number.isFinite(nextValue) || nextValue <= 0 || timerState.isRunning) {
+      return;
+    }
     updateTimerDuration(stepId, nextValue);
+    if (previousValue !== nextValue) {
+      logAuditChange({
+        field: `timers.${stepId}.durationMin`,
+        oldValue: previousValue,
+        newValue: nextValue,
+        context: { stepId },
+      });
+    }
   });
   durationLabel.appendChild(durationInput);
   durationRow.appendChild(durationLabel);
@@ -1083,6 +1256,10 @@ const renderSummary = () => {
       summaryRow(
         "Step logs",
         `${summaryData.counts?.stepLogs || 0} entries`,
+      ),
+      summaryRow(
+        "Audit logs",
+        `${summaryData.counts?.auditLogs || 0} entries`,
       ),
       summaryRow(
         "Attachments",
@@ -1214,8 +1391,17 @@ const renderSummary = () => {
     resultsCard.appendChild(attachmentBlock);
   }
 
+  const auditActions = document.createElement("div");
+  auditActions.className = "summaryActions";
+  const exportButton = document.createElement("button");
+  exportButton.type = "button";
+  exportButton.className = "primaryButton";
+  exportButton.textContent = "Export audit log";
+  exportButton.addEventListener("click", exportAuditLog);
+  auditActions.appendChild(exportButton);
+
   const wrapper = document.createElement("div");
-  wrapper.append(card, resultsCard);
+  wrapper.append(card, auditActions, resultsCard);
 
   return wrapper;
 };
@@ -1336,11 +1522,21 @@ const handleNext = () => {
   } else {
     logStep(steps[state.currentStepIndex], "finished");
     const finishedAt = new Date().toISOString();
-    postJson("/api/runs", {
-      ...buildRunPayload(),
-      status: "completed",
-      finishedAt,
-    }).catch((error) => {
+    const completedSignature = buildSignature();
+    logAuditChange({
+      field: "run.status",
+      oldValue: "running",
+      newValue: "completed",
+      context: { action: "finish", runId: state.runId },
+    });
+    postJson(
+      "/api/runs",
+      buildRunPayload({
+        status: "completed",
+        finishedAt,
+        completedSignature,
+      }),
+    ).catch((error) => {
       console.warn("Failed to finalize run.", error);
     });
     if (webApp?.HapticFeedback) {

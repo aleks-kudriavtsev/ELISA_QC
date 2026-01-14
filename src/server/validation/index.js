@@ -3,6 +3,7 @@ const { validateExperimentPlan } = require('./experimentPlanValidation');
 const { validateExperimentDesign } = require('./experimentDesignValidation');
 const { validateExperimentRun } = require('./experimentRunValidation');
 const { validateStepLog } = require('./stepLogValidation');
+const { validateAuditLog } = require('./auditLogValidation');
 const { validateAttachment } = require('./attachmentValidation');
 const { validateInstrumentRecord } = require('./instrumentRecordValidation');
 const { validateUpload } = require('./uploadValidation');
@@ -19,6 +20,7 @@ module.exports = {
   validateExperimentDesign,
   validateExperimentRun,
   validateStepLog,
+  validateAuditLog,
   validateAttachment,
   validateInstrumentRecord,
   validateUpload,

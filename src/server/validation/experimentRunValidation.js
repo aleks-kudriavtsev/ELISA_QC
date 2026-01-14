@@ -2,6 +2,7 @@ const {
   allowedRunStatuses,
   requiredFields,
   validateIsoTimestamp,
+  validateSignature,
 } = require('./common');
 const { validateRunAgainstProtocol } = require('./protocolValidation');
 const { validateLotEntries } = require('./lotValidation');
@@ -20,6 +21,15 @@ const validateExperimentRun = (payload, planPayload) => {
   if (payload.status && !allowedRunStatuses.has(payload.status)) {
     errors.push('ExperimentRun.status must be running, completed, or failed');
   }
+  if (payload.status === 'completed' && !payload.completedSignature) {
+    errors.push('ExperimentRun.completedSignature is required when status is completed');
+  }
+  errors.push(
+    ...validateSignature(
+      payload.completedSignature,
+      'ExperimentRun.completedSignature',
+    ),
+  );
   if (payload.designId && !payload.runSeriesId) {
     errors.push('ExperimentRun.runSeriesId is required when designId is provided');
   }

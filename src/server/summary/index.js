@@ -31,6 +31,7 @@ const summarizeLotTypes = (lots) => {
 const createSummaryStore = () => ({
   runs: [],
   stepLogs: [],
+  auditLogs: [],
   attachments: [],
   uploads: [],
   instrumentRecords: [],
@@ -290,6 +291,9 @@ const createSummaryHandler = ({ store = createSummaryStore() } = {}) => {
     const stepLogs = store.stepLogs
       .filter((entry) => entry.runId === runId)
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const auditLogs = store.auditLogs
+      .filter((entry) => entry.runId === runId)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     const attachments = store.attachments
       .filter((entry) => entry.runId === runId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
@@ -309,6 +313,7 @@ const createSummaryHandler = ({ store = createSummaryStore() } = {}) => {
       run.finishedAt,
       run.startedAt,
       ...stepLogs.map((entry) => entry.timestamp),
+      ...auditLogs.map((entry) => entry.timestamp),
       ...attachments.map((entry) => entry.createdAt),
     ]);
 
@@ -333,6 +338,7 @@ const createSummaryHandler = ({ store = createSummaryStore() } = {}) => {
       factorEffects,
       counts: {
         stepLogs: stepLogs.length,
+        auditLogs: auditLogs.length,
         attachments: attachments.length,
       },
       status: run.status,
