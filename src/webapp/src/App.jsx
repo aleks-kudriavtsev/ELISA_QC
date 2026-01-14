@@ -38,6 +38,7 @@ const screens = [
 ];
 
 const protocolOrder = [
+  "DELFIA Labeling Preparation",
   "Direct ELISA",
   "Indirect ELISA",
   "Sandwich ELISA",

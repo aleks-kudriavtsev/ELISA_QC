@@ -1,0 +1,571 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "protocols/elisa/delfiaLabelingPreparation.json",
+  "title": "DELFIA Labeling Preparation Protocol Template",
+  "description": "Template for preparing Eu-N1 DTA chelate labeling reactions, purification, and characterization for DELFIA-style assays.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "protocolId",
+    "name",
+    "description",
+    "applicability",
+    "reagents",
+    "buffers",
+    "steps"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the protocol template schema.",
+      "default": "1.0.0"
+    },
+    "protocolId": {
+      "type": "string",
+      "description": "Unique identifier for the protocol template.",
+      "default": "delfia-labeling-preparation"
+    },
+    "name": {
+      "type": "string",
+      "const": "DELFIA Labeling Preparation"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable summary of the protocol."
+    },
+    "applicability": {
+      "type": "string",
+      "description": "When to use the protocol and what it prepares."
+    },
+    "reagents": {
+      "type": "array",
+      "description": "Primary reagents used in the labeling preparation.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "role"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "role": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "buffers": {
+      "type": "array",
+      "description": "Buffers used across labeling and purification.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "purpose"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "purpose": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "prefixItems": [
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-material-check" },
+            "name": { "const": "Material Check & Storage" },
+            "stepType": { "const": "materialCheck" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 3,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "chelateStorageTempC" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "standardStorageTempC" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "lotNumber" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-reconstitution" },
+            "name": { "const": "Chelate Reconstitution" },
+            "stepType": { "const": "reconstitution" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "reconstitutionVolumeUl" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "reconstitutionConcentrationmM" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "reconstitutionBuffer" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "reconstitutionTempC" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-pretreatment" },
+            "name": { "const": "Sample Pretreatment" },
+            "stepType": { "const": "pretreatment" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 3,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "pretreatmentMethod" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "interferingCompoundsRemoved" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "sampleId" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-concentration" },
+            "name": { "const": "Sample Concentration" },
+            "stepType": { "const": "concentration" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 3,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "sampleConcentrationMgMl" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "concentrationMethod" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "concentrationTargetMgMl" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-buffer-adjustment" },
+            "name": { "const": "Labeling Buffer Adjustment" },
+            "stepType": { "const": "bufferAdjustment" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "bufferName" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "bufferConcentrationmM" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "reactionPh" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "phCheckMethod" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-labeling-reaction" },
+            "name": { "const": "Labeling Reaction" },
+            "stepType": { "const": "labelingReaction" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 5,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "molarExcess" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "reactionTempC" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "reactionTimeHours" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "chelateVolumeUl" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "incubationMode" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-purification" },
+            "name": { "const": "Purification" },
+            "stepType": { "const": "purification" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "purificationMethod" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "columnType" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "elutionBuffer" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "fractionCount" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-column-care" },
+            "name": { "const": "Column Decontamination" },
+            "stepType": { "const": "columnCare" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 3,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "decontaminationBuffer" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "decontaminationTimeMin" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "bsaSaturationVolumeMl" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-characterization" },
+            "name": { "const": "Characterization" },
+            "stepType": { "const": "characterization" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 5,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "enhancementSolutionDilution" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "euStandardDilution" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "fluorescenceReading" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "proteinConcentrationMgMl" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "instrumentId" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-filtration" },
+            "name": { "const": "Filtration" },
+            "stepType": { "const": "filtration" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "filterPoreSizeUm" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "filterType" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "name", "stepType", "expectedFields"],
+          "properties": {
+            "id": { "const": "delfia-storage" },
+            "name": { "const": "Storage & Usage" },
+            "stepType": { "const": "storage" },
+            "expectedFields": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/definitions/field" },
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "storageTempC" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "storageConcentrationMgMl" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "stabilizerPercent" } },
+                    "required": ["fieldId"]
+                  }
+                },
+                {
+                  "contains": {
+                    "properties": { "fieldId": { "const": "intendedUseNotes" } },
+                    "required": ["fieldId"]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "items": false
+    }
+  },
+  "definitions": {
+    "field": {
+      "type": "object",
+      "required": ["fieldId", "label", "dataType"],
+      "properties": {
+        "fieldId": {
+          "type": "string",
+          "enum": [
+            "bsaSaturationVolumeMl",
+            "bufferConcentrationmM",
+            "bufferName",
+            "chelateStorageTempC",
+            "chelateVolumeUl",
+            "columnType",
+            "concentrationMethod",
+            "concentrationTargetMgMl",
+            "decontaminationBuffer",
+            "decontaminationTimeMin",
+            "elutionBuffer",
+            "enhancementSolutionDilution",
+            "euStandardDilution",
+            "filterPoreSizeUm",
+            "filterType",
+            "fluorescenceReading",
+            "fractionCount",
+            "incubationMode",
+            "instrumentId",
+            "intendedUseNotes",
+            "interferingCompoundsRemoved",
+            "lotNumber",
+            "molarExcess",
+            "phCheckMethod",
+            "pretreatmentMethod",
+            "proteinConcentrationMgMl",
+            "purificationMethod",
+            "reactionPh",
+            "reactionTempC",
+            "reactionTimeHours",
+            "reconstitutionBuffer",
+            "reconstitutionConcentrationmM",
+            "reconstitutionTempC",
+            "reconstitutionVolumeUl",
+            "sampleConcentrationMgMl",
+            "sampleId",
+            "standardStorageTempC",
+            "stabilizerPercent",
+            "storageConcentrationMgMl",
+            "storageTempC"
+          ]
+        },
+        "label": { "type": "string" },
+        "dataType": {
+          "type": "string",
+          "enum": ["number", "string"]
+        },
+        "unit": { "type": "string" },
+        "required": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
