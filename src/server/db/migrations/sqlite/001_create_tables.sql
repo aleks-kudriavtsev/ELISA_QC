@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS experiment_runs (
   started_by_user_id TEXT NOT NULL,
   started_at TEXT NOT NULL,
   finished_at TEXT,
+  completed_signature TEXT,
   lots TEXT NOT NULL DEFAULT '[]',
   FOREIGN KEY (plan_id) REFERENCES experiment_plans(id),
   FOREIGN KEY (started_by_user_id) REFERENCES users(id)
@@ -40,7 +41,21 @@ CREATE TABLE IF NOT EXISTS step_logs (
   status TEXT NOT NULL CHECK (status IN ('started', 'finished', 'failed')),
   timestamp TEXT NOT NULL,
   message TEXT NOT NULL,
+  completion_signature TEXT,
   lots TEXT NOT NULL DEFAULT '[]',
+  FOREIGN KEY (run_id) REFERENCES experiment_runs(id)
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  user_name TEXT,
+  timestamp TEXT NOT NULL,
+  field TEXT NOT NULL,
+  old_value TEXT NOT NULL,
+  new_value TEXT NOT NULL,
+  context TEXT NOT NULL DEFAULT '{}',
   FOREIGN KEY (run_id) REFERENCES experiment_runs(id)
 );
 
@@ -68,5 +83,6 @@ CREATE TABLE IF NOT EXISTS instrument_records (
 
 CREATE INDEX IF NOT EXISTS idx_experiment_runs_plan_id ON experiment_runs(plan_id);
 CREATE INDEX IF NOT EXISTS idx_step_logs_run_id ON step_logs(run_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_run_id ON audit_logs(run_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_run_id ON attachments(run_id);
 CREATE INDEX IF NOT EXISTS idx_instrument_records_run_id ON instrument_records(run_id);

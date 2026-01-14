@@ -24,6 +24,7 @@ const {
   createSummaryStore,
 } = require('./summary');
 const { createDesignHandler } = require('./designs');
+const { createAuditLogHandler } = require('./auditLogs');
 
 const createApiServer = ({ logger = console } = {}) => {
   const store = createSummaryStore();
@@ -32,6 +33,10 @@ const createApiServer = ({ logger = console } = {}) => {
   const { handleStepLog } = createStepLogHandler({ store, logger });
   const { handleSummary } = createSummaryHandler({ store });
   const { handleDesign } = createDesignHandler({ store });
+  const { handleAuditLog, handleAuditLogExport } = createAuditLogHandler({
+    store,
+    logger,
+  });
 
   const server = http.createServer((request, response) => {
     applyCorsHeaders(response);
@@ -64,6 +69,14 @@ const createApiServer = ({ logger = console } = {}) => {
 
     if (pathname.startsWith('/api/runs/') && pathname.endsWith('/steps')) {
       return handleStepLog(request, response);
+    }
+
+    if (pathname.startsWith('/api/runs/') && pathname.endsWith('/audit-logs')) {
+      return handleAuditLog(request, response);
+    }
+
+    if (pathname === '/api/audit-logs') {
+      return handleAuditLogExport(request, response);
     }
 
     if (pathname === '/api/summary') {

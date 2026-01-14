@@ -22,9 +22,23 @@ const validateIsoTimestamp = (value, fieldName) => {
   return [];
 };
 
+const validateSignature = (signature, context) => {
+  if (!signature) {
+    return [];
+  }
+  if (typeof signature !== 'object') {
+    return [`${context} must be an object`];
+  }
+  const errors = [];
+  errors.push(...requiredFields(signature, ['userId', 'timestamp', 'method'], context));
+  errors.push(...validateIsoTimestamp(signature.timestamp, `${context}.timestamp`));
+  return errors;
+};
+
 module.exports = {
   allowedRunStatuses,
   allowedStepStatuses,
   requiredFields,
   validateIsoTimestamp,
+  validateSignature,
 };

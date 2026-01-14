@@ -12,6 +12,7 @@ class ExperimentRun {
     startedByUserId,
     startedAt,
     finishedAt,
+    completedSignature,
     lots = [],
   }) {
     this.id = id;
@@ -24,6 +25,7 @@ class ExperimentRun {
     this.startedByUserId = startedByUserId;
     this.startedAt = startedAt;
     this.finishedAt = finishedAt;
+    this.completedSignature = completedSignature;
     this.lots = Array.isArray(lots) ? lots.map((lot) => new LotBatch(lot)) : [];
   }
 }

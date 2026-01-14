@@ -256,6 +256,12 @@ select {
   color: var(--tg-theme-hint-color, #6b7280);
 }
 
+.summaryActions {
+  margin: 12px 0;
+  display: flex;
+  justify-content: flex-start;
+}
+
 .summaryLots {
   margin-top: 12px;
   display: grid;
