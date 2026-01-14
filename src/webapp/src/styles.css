@@ -172,6 +172,89 @@ body {
   opacity: 0.5;
 }
 
+.app__consumables {
+  display: grid;
+  gap: 16px;
+}
+
+.app__consumable-card {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid
+    color-mix(in srgb, var(--tg-theme-hint-color, #667085) 30%, transparent);
+  background: var(--tg-theme-bg-color, #f6f7fb);
+  display: grid;
+  gap: 12px;
+}
+
+.app__consumable-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app__consumable-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.app__consumable-form {
+  display: grid;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed
+    color-mix(in srgb, var(--tg-theme-hint-color, #667085) 30%, transparent);
+}
+
+.app__badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.app__badge--ok {
+  color: #0f5132;
+  background: color-mix(in srgb, #198754 18%, transparent);
+}
+
+.app__badge--warning {
+  color: #8a6d1d;
+  background: color-mix(in srgb, #f0ad4e 20%, transparent);
+}
+
+.app__badge--alert {
+  color: #842029;
+  background: color-mix(in srgb, #dc3545 18%, transparent);
+}
+
+.app__warning {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #f0ad4e 15%, transparent);
+  border: 1px solid color-mix(in srgb, #f0ad4e 40%, transparent);
+  display: grid;
+  gap: 8px;
+}
+
+.app__warning-list,
+.app__log-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.app__consumption-log {
+  display: grid;
+  gap: 8px;
+}
+
 .app__checklist {
   display: grid;
   gap: 16px;
