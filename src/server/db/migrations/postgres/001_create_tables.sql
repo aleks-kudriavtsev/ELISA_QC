@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS experiment_plans (
 CREATE TABLE IF NOT EXISTS experiment_runs (
   id TEXT PRIMARY KEY,
   plan_id TEXT NOT NULL REFERENCES experiment_plans(id),
+  protocol_id TEXT NOT NULL,
+  protocol_version TEXT NOT NULL,
   run_number INTEGER NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('running', 'completed', 'failed')),
   started_by_user_id TEXT NOT NULL REFERENCES users(id),

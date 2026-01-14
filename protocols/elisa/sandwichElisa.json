@@ -256,6 +256,75 @@
       "items": false
     }
   },
+  "versionHistory": [
+    {
+      "version": "1.0.0",
+      "releasedAt": "2024-01-01T00:00:00Z",
+      "summary": "Initial protocol definition.",
+      "steps": [
+        {
+          "stepId": "sandwich-coating",
+          "stepName": "Coating (Capture Antibody)",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "sandwich-blocking",
+          "stepName": "Blocking",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "sandwich-sample-incubation",
+          "stepName": "Incubation (Sample/Antigen)",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "sandwich-wash-1",
+          "stepName": "Wash 1",
+          "expectedFieldIds": ["timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "sandwich-detection-incubation",
+          "stepName": "Incubation (Detection Antibody)",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "sandwich-wash-2",
+          "stepName": "Wash 2",
+          "expectedFieldIds": ["timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "sandwich-substrate",
+          "stepName": "Substrate",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "sandwich-stop",
+          "stepName": "Stop Reaction",
+          "expectedFieldIds": ["volumeUl"]
+        },
+        {
+          "stepId": "sandwich-read",
+          "stepName": "Read",
+          "expectedFieldIds": ["od"]
+        }
+      ]
+    }
+  ],
   "definitions": {
     "field": {
       "type": "object",

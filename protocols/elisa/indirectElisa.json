@@ -256,6 +256,75 @@
       "items": false
     }
   },
+  "versionHistory": [
+    {
+      "version": "1.0.0",
+      "releasedAt": "2024-01-01T00:00:00Z",
+      "summary": "Initial protocol definition.",
+      "steps": [
+        {
+          "stepId": "indirect-coating",
+          "stepName": "Coating",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "indirect-blocking",
+          "stepName": "Blocking",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "indirect-primary-incubation",
+          "stepName": "Incubation (Primary Antibody)",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "indirect-wash-1",
+          "stepName": "Wash 1",
+          "expectedFieldIds": ["timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "indirect-secondary-incubation",
+          "stepName": "Incubation (Secondary Antibody)",
+          "expectedFieldIds": [
+            "temperatureC",
+            "timeMin",
+            "volumeUl",
+            "concentrationUgMl"
+          ]
+        },
+        {
+          "stepId": "indirect-wash-2",
+          "stepName": "Wash 2",
+          "expectedFieldIds": ["timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "indirect-substrate",
+          "stepName": "Substrate",
+          "expectedFieldIds": ["temperatureC", "timeMin", "volumeUl"]
+        },
+        {
+          "stepId": "indirect-stop",
+          "stepName": "Stop Reaction",
+          "expectedFieldIds": ["volumeUl"]
+        },
+        {
+          "stepId": "indirect-read",
+          "stepName": "Read",
+          "expectedFieldIds": ["od"]
+        }
+      ]
+    }
+  ],
   "definitions": {
     "field": {
       "type": "object",

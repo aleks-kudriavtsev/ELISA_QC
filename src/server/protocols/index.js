@@ -13,8 +13,11 @@ const resolveProtocolName = (schema, fallbackId) =>
   schema?.title ||
   fallbackId;
 
-const resolveProtocolVersion = (schema) =>
-  schema?.properties?.schemaVersion?.default || schema?.schemaVersion;
+const {
+  diffProtocolSnapshots,
+  normalizeVersionHistory,
+  resolveProtocolVersion,
+} = require('./versioning');
 
 const loadProtocolSchemas = () => {
   const entries = fs.readdirSync(protocolsDirectory, { withFileTypes: true });
@@ -60,8 +63,33 @@ const listProtocols = () => {
   }));
 };
 
+const getProtocolVersionHistory = (protocolId) => {
+  const schema = getProtocolSchema(protocolId);
+  if (!schema) {
+    return [];
+  }
+  return normalizeVersionHistory(schema);
+};
+
+const getProtocolVersionSnapshot = (protocolId, version) => {
+  const history = getProtocolVersionHistory(protocolId);
+  return history.find((entry) => entry.version === version) || null;
+};
+
+const diffProtocolVersions = (protocolId, fromVersion, toVersion) => {
+  const fromSnapshot = getProtocolVersionSnapshot(protocolId, fromVersion);
+  const toSnapshot = getProtocolVersionSnapshot(protocolId, toVersion);
+  if (!fromSnapshot || !toSnapshot) {
+    return null;
+  }
+  return diffProtocolSnapshots({ fromSnapshot, toSnapshot });
+};
+
 module.exports = {
   getProtocolSchema,
   getProtocolSchemas,
+  getProtocolVersionHistory,
+  getProtocolVersionSnapshot,
+  diffProtocolVersions,
   listProtocols,
 };

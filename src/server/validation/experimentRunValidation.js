@@ -12,7 +12,16 @@ const validateExperimentRun = (payload, planPayload) => {
   errors.push(
     ...requiredFields(
       payload,
-      ['id', 'planId', 'runNumber', 'status', 'startedByUserId', 'startedAt'],
+      [
+        'id',
+        'planId',
+        'protocolId',
+        'protocolVersion',
+        'runNumber',
+        'status',
+        'startedByUserId',
+        'startedAt',
+      ],
       'ExperimentRun',
     ),
   );
