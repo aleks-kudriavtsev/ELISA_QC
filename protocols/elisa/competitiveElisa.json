@@ -86,8 +86,8 @@
     },
     "steps": {
       "type": "array",
-      "minItems": 10,
-      "maxItems": 11,
+      "minItems": 12,
+      "maxItems": 12,
       "prefixItems": [
         {
           "type": "object",
